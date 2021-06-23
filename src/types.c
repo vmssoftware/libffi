@@ -86,7 +86,7 @@ FFI_TYPEDEF(double, double, FFI_TYPE_DOUBLE, const);
 #define FFI_LDBL_CONST
 #endif
 
-#ifdef __alpha__
+#if defined (__alpha__) || (defined(__VMS) && defined (__ia64__))
 /* Even if we're not configured to default to 128-bit long double, 
    maintain binary compatibility, as -mlong-double-128 can be used
    at any time.  */
@@ -94,7 +94,11 @@ FFI_TYPEDEF(double, double, FFI_TYPE_DOUBLE, const);
 # if defined(__LONG_DOUBLE_128__) && FFI_TYPE_LONGDOUBLE != 4
 #  error FFI_TYPE_LONGDOUBLE out of date
 # endif
+#if defined(__VMS) && defined(_ILP32)
+const ffi_type ffi_type_longdouble = { 16, 8, 4, NULL };
+#else
 const ffi_type ffi_type_longdouble = { 16, 16, 4, NULL };
+#endif
 #elif FFI_TYPE_LONGDOUBLE != FFI_TYPE_DOUBLE
 FFI_TYPEDEF(longdouble, long double, FFI_TYPE_LONGDOUBLE, FFI_LDBL_CONST);
 #endif

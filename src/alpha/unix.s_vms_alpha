@@ -1,0 +1,422 @@
+/* -----------------------------------------------------------------------
+   osf.S - Copyright (c) 1998, 2001, 2007, 2008 Red Hat
+   
+   Alpha/OSF Foreign Function Interface 
+
+   Permission is hereby granted, free of charge, to any person obtaining
+   a copy of this software and associated documentation files (the
+   ``Software''), to deal in the Software without restriction, including
+   without limitation the rights to use, copy, modify, merge, publish,
+   distribute, sublicense, and/or sell copies of the Software, and to
+   permit persons to whom the Software is furnished to do so, subject to
+   the following conditions:
+
+   The above copyright notice and this permission notice shall be included
+   in all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED ``AS IS'', WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+   NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+   HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+   ----------------------------------------------------------------------- */
+
+#define LIBFFI_ASM	
+#include <fficonfig.h>
+#include <ffi.h>
+
+	.TITLE "VMS"
+
+	.MACRO ldaq rx,im,?l1
+	.PSECT MY_CODE,EXE,MIX
+	l1: .address im
+	$code_section
+	.base	r27, $ls
+        ldq     R22, $DP
+	addq	r27,$DS,R22
+        .BASE	R27, $ds
+	ldq rx,l1
+	.endm ldaq
+
+	.MACRO  .gprel32 label
+	.SHOW   MEB
+	.ADDRESS	label
+	.NOSHOW MEB
+	.ENDM   .gprel32
+
+	$PDSCDEF        ; include procedure descriptor offset definitions
+
+	.ENABLE ALIGN_CODE
+/* ffi_call_osf (void *args, unsigned long bytes, unsigned flags,
+		 void *raddr, void (*fnaddr)(void));
+
+   Bit o trickiness here -- ARGS+BYTES is the base of the stack frame
+   for this function.  This has been allocated by ffi_call.  We also
+   deallocate some of the stack that has been alloca'd.  */
+
+	$ROUTINE ffi_call_osf,-
+		 KIND=STACK,-
+		 STANDARD_PROLOGUE=FALSE
+;	$LINKAGE_SECTION
+;	$LINKAGE_PAIR OTS$MOVE3
+	$CODE_SECTION
+
+;ffi_call_osf::
+
+
+$LFB1:
+	lda	sp,-72(sp)
+	STQ	R27,(SP)
+	STQ	R26,8(SP)
+	STQ	FP,16(SP)
+;        STQ	R25,24(SP)
+        stq	r16,24(SP)
+	stq	r17,32(sp)
+	stq	r18,40(SP)
+	stq	r19,48(sp)	
+        stq	r20,56(sp)
+	stq	r21,64(sp)
+	MOV	SP,FP
+	$end_prologue
+                         
+        mov	#48,R1
+	cmplt	R1,R17,R1
+	ble	R1,$LCFI1
+        subq    R17,#48,R1
+	lda	R17,48(R16)
+        mov	R1,R16
+        subq	SP,R16,SP
+	lda	R18,(SP)
+	mov	r27,r22
+	.base	R22,$ls
+	$call	OTS$MOVE3
+	
+$LCFI1:
+#if 0
+	.prologue 0
+#endif
+
+;	# Load up all of the (potential) argument registers.
+        
+        ldq	R22, 24(FP)
+	ldq	R16, 0(R22)
+	ldt	F16, 0(R22)
+	ldt	F17, 8(R22)
+	ldq	R17, 8(R22)
+	ldt	F18, 16(R22)
+	ldq	R18, 16(R22)
+	ldt	F19, 24(R22)
+	ldq	R19, 24(R22)
+	ldt	F20, 32(R22)
+	ldq	R20, 32(R22)
+	ldt	F21, 40(R22)
+	ldq	R21, 40(R22)
+
+;	# Deallocate the register argument area.
+	ldq	R25,64(FP)
+       	ldq	R27,56(FP)
+	ldq	R26,8(R27)
+	jsr	R26,R26
+	MOV	FP,SP
+        LDQ	R25,24(SP)
+;	# If the return value pointer is NULL, assume no return value.
+	ldq	R18,40(FP)
+	ldq	R19,48(FP)
+$LCFI2:
+	beq	R19, $noretval
+
+;	# Store the return value out in the proper type.
+	cmpeq	R18, FFI_TYPE_INT, R1
+	bne	R1, $retint
+	cmpeq	R18, FFI_TYPE_FLOAT, R1
+	bne	R1, $retfloat
+	cmpeq	R18, FFI_TYPE_DOUBLE, R1
+	bne	R1, $retdouble
+
+	.align	LONG
+$noretval:
+;	ldq	R15, 8(R15)
+
+	br	L$1
+;	mov	R24,FP
+;	ret	R26
+	.align	LONG
+$retint:
+	stq	R0, 0(R19)
+	nop
+	br	L$1
+	.align	LONG
+$retfloat:
+	sts	F0, 0(R19)
+	nop
+	br	L$1
+	.align	LONG
+$retdouble:
+	stt	F0, 0(R19)
+	nop
+L$1:
+	$return
+	$END_ROUTINE ffi_call_osf
+#if 0
+	.end	ffi_call_osf
+#endif
+/* ffi_closure_osf(...)
+
+   Receives the closure argument in $1.   */
+
+#if 0
+	.align	3
+	.globl	ffi_closure_osf
+	.ent	ffi_closure_osf
+	FFI_HIDDEN(ffi_closure_osf)
+
+ffi_closure_osf:
+	.frame	$30, 16*8, $26, 0
+	.mask	0x4000000, -16*8
+#else
+	.PSECT MY_CODE,EXE,MIX
+	$ROUTINE ffi_closure_osf,-
+		 KIND=NULL,-
+		 CODE_SECTION=MY_CODE
+	.EXTERNAL ffi_closure_osf_inner
+
+;ffi_closure_osf::
+#endif
+$LFB2:
+;        ldq     r29,0(r27)
+	lda	SP, -17*8(SP)
+	STQ	R26,(SP)
+	STQ	R27,8(SP)
+
+$LCFI6:
+#if 0
+	.prologue 1
+#endif
+;	# Store all of the potential argument registers in va_list format.
+	stt	F16, 5*8(SP)
+	stt	F17, 6*8(SP)
+	stt	F18, 7*8(SP)
+	stt	F19, 8*8(SP)
+	stt	F20, 9*8(SP)
+	stt	F21, 10*8(SP)
+	stq	R16, 11*8(SP)
+	stq	R17, 12*8(SP)
+	stq	R18, 13*8(SP)
+	stq	R19, 14*8(SP)
+	stq	R20, 15*8(SP)
+	stq	R21, 16*8(SP)
+
+//	# Call ffi_closure_osf_inner to do the bulk of the work.
+	mov	R1, R16
+	lda	R17, 2*8(SP)
+	lda	R18, 11*8(SP)
+        ldq	r27,<10$-$LFB2>(R27)
+        ldq     r26,8(r27)
+        jsr	r26,r26
+	ldq	R27, 8(SP)
+	ldq	R26, 0(SP)
+
+//	# Load up the return value in the proper type.
+	
+        ldq     R1,<20$-$LFB2>(R27)
+        sll	R0,#3,R0
+	addq	R1,R0,R1
+	ldq	R1, 0(R1)
+	jmp	R31,R1
+	.align	LONG
+$load_none:
+	addq	R30, 17*8, R30
+	ret	R26
+	.align  LONG
+$load_float:
+	lds	F0, 16(R30)
+	nop
+	addq	R30, 17*8, R30
+	ret	R26
+	.align  LONG
+$load_double:
+	ldt	F0, 16(R30)
+	nop
+	addq	R30, 17*8, R30
+	ret	R26
+	.align	LONG
+$load_u8:
+#ifdef __alpha_bwx__
+	ldbu	R0, 16(R30)
+	nop
+#else
+	ldq	R0, 16(R30)
+	and	R0, 255, R0
+#endif
+	addq	R30, 17*8, R30
+	ret	R26
+	.align	LONG
+$load_s8:
+#ifdef __alpha_bwx__
+	ldbu	R0, 16(R30)
+	sextb	R0, R0
+#else
+	ldq	R0, 16(R30)
+	sll	R0, 56, R0
+	sra	R0, 56, R0
+#endif
+	addq	R30, 17*8, R30
+	ret	R26
+	.align	LONG
+$load_u16:
+#ifdef __alpha_bwx__
+	ldwu	R0, 16(R30)
+	nop
+#else
+	ldq	R0, 16(R30)
+	zapnot	R0, 3, R0
+#endif
+	addq	R30, 17*8, R30
+	ret	R26
+	.align	LONG
+$load_s16:
+#ifdef __alpha_bwx__
+	ldwu	R0, 16(R30)
+	sextw	R0, R0
+#else
+	ldq	R0, 16(R30)
+	sll	R0, 48, R0
+	sra	R0, 48, R0
+#endif
+	addq	R30, 17*8, R30
+	ret	R26
+	.align	LONG
+$load_32:
+	ldl	R0, 16(R30)
+	nop
+	addq	R30, 17*8, R30
+	ret	R26
+	.align	LONG
+$load_64:
+	ldq	R0, 16(R30)
+	nop
+	addq	R30, 17*8, R30
+	ret	R26
+	.align	quad
+10$:	.ADDRESS ffi_closure_osf_inner
+20$:	.ADDRESS $load_table
+	$END_ROUTINE ffi_closure_osf
+#if 0
+	.end	ffi_closure_osf
+#endif
+#if 0
+#ifdef __ELF__
+.section .rodata
+#else
+.rdata
+#endif
+#endif
+
+	.PSECT  $LITERAL$, OCTA, PIC, CON, REL, LCL, SHR, NOEXE, RD, NOWRT
+	
+$load_table:
+	.gprel32 $load_none	// FFI_TYPE_VOID
+	.gprel32 $load_32	// FFI_TYPE_INT
+	.gprel32 $load_float	// FFI_TYPE_FLOAT
+	.gprel32 $load_double	// FFI_TYPE_DOUBLE
+	.gprel32 $load_none	// FFI_TYPE_LONGDOUBLE
+	.gprel32 $load_u8	// FFI_TYPE_UINT8
+	.gprel32 $load_s8	// FFI_TYPE_SINT8
+	.gprel32 $load_u16	// FFI_TYPE_UINT16
+	.gprel32 $load_s16	// FFI_TYPE_SINT16
+	.gprel32 $load_32	// FFI_TYPE_UINT32
+	.gprel32 $load_32	// FFI_TYPE_SINT32
+	.gprel32 $load_64	// FFI_TYPE_UINT64
+	.gprel32 $load_64	// FFI_TYPE_SINT64
+	.gprel32 $load_64	// FFI_TYPE_STRUCT
+	.gprel32 $load_64	// FFI_TYPE_POINTER
+
+;	$LINKAGE_PAIR ffi_closure_osf_inner, LOCAL=TRUE
+	.END
+/* Assert that the table above is in sync with ffi.h.  */
+
+#if	   FFI_TYPE_FLOAT != 2		\
+	|| FFI_TYPE_DOUBLE != 3		\
+	|| FFI_TYPE_UINT8 != 5		\
+	|| FFI_TYPE_SINT8 != 6		\
+	|| FFI_TYPE_UINT16 != 7		\
+	|| FFI_TYPE_SINT16 != 8		\
+	|| FFI_TYPE_UINT32 != 9		\
+	|| FFI_TYPE_SINT32 != 10	\
+	|| FFI_TYPE_UINT64 != 11	\
+	|| FFI_TYPE_SINT64 != 12	\
+	|| FFI_TYPE_STRUCT != 13	\
+	|| FFI_TYPE_POINTER != 14	\
+	|| FFI_TYPE_LAST != 14
+#error "vms.S_Alpha out of sync with ffi.h"
+#endif
+
+#ifdef __ELF__
+	.section	.eh_frame,EH_FRAME_FLAGS,@progbits
+__FRAME_BEGIN__:
+	.4byte	$LECIE1-$LSCIE1	# Length of Common Information Entry
+$LSCIE1:
+	.4byte	0x0		# CIE Identifier Tag
+	.byte	0x1		# CIE Version
+	.ascii "zR\0"		# CIE Augmentation
+	.byte	0x1		# uleb128 0x1; CIE Code Alignment Factor
+	.byte	0x78		# sleb128 -8; CIE Data Alignment Factor
+	.byte	26		# CIE RA Column
+	.byte	0x1		# uleb128 0x1; Augmentation size
+	.byte	0x1b		# FDE Encoding (pcrel sdata4)
+	.byte	0xc		# DW_CFA_def_cfa
+	.byte	30		# uleb128 column 30
+	.byte	0		# uleb128 offset 0
+	.align 3
+$LECIE1:
+$LSFDE1:
+	.4byte	$LEFDE1-$LASFDE1		# FDE Length
+$LASFDE1:
+	.4byte	$LASFDE1-__FRAME_BEGIN__	# FDE CIE offset
+	.4byte	$LFB1-.		# FDE initial location
+	.4byte	$LFE1-$LFB1	# FDE address range
+	.byte	0x0		# uleb128 0x0; Augmentation size
+
+	.byte	0x4		# DW_CFA_advance_loc4
+	.4byte	$LCFI1-$LFB1
+	.byte	0x9a		# DW_CFA_offset, column 26
+	.byte	4		# uleb128 4*-8
+	.byte	0x8f		# DW_CFA_offset, column 15
+	.byte	0x3		# uleb128 3*-8
+	.byte	0xc		# DW_CFA_def_cfa
+	.byte	15		# uleb128 column 15
+	.byte	32		# uleb128 offset 32
+
+	.byte	0x4		# DW_CFA_advance_loc4
+	.4byte	$LCFI2-$LCFI1
+	.byte	0xda		# DW_CFA_restore, column 26
+	.align 3
+$LEFDE1:
+
+$LSFDE3:
+	.4byte	$LEFDE3-$LASFDE3		# FDE Length
+$LASFDE3:
+	.4byte	$LASFDE3-__FRAME_BEGIN__	# FDE CIE offset
+	.4byte	$LFB2-.		# FDE initial location
+	.4byte	$LFE2-$LFB2	# FDE address range
+	.byte	0x0		# uleb128 0x0; Augmentation size
+
+	.byte	0x4		# DW_CFA_advance_loc4
+	.4byte	$LCFI5-$LFB2
+	.byte	0xe		# DW_CFA_def_cfa_offset
+	.byte	0x80,0x1	# uleb128 128
+
+	.byte	0x4		# DW_CFA_advance_loc4
+	.4byte	$LCFI6-$LCFI5
+	.byte	0x9a		# DW_CFA_offset, column 26
+	.byte	16		# uleb128 offset 16*-8
+	.align 3
+$LEFDE3:
+
+#ifdef __linux__
+	.section	.note.GNU-stack,"",@progbits
+#endif
+#endif

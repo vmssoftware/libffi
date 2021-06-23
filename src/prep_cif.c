@@ -158,6 +158,9 @@ ffi_status FFI_HIDDEN ffi_prep_cif_core(ffi_cif *cif, ffi_abi abi,
 #ifdef XTENSA
       && (cif->rtype->size > 16)
 #endif
+#ifdef __VMS
+      && (cif->rtype->size > 8)
+#endif
 #ifdef NIOS2
       && (cif->rtype->size > 8)
 #endif
@@ -165,7 +168,25 @@ ffi_status FFI_HIDDEN ffi_prep_cif_core(ffi_cif *cif, ffi_abi abi,
     bytes = STACK_ARG_SIZE(sizeof(void*));
 #endif
 
+#ifdef __VMS
+   if (cif->rtype->type == FFI_TYPE_LONGDOUBLE)
+       bytes = STACK_ARG_SIZE(sizeof(void*));
+   else
+     {
+       if (cif->rtype->type == FFI_TYPE_COMPLEX)
+         {
+           ffi_type *itype;
+           itype = cif->rtype->elements[0];
+           if (itype->type == FFI_TYPE_LONGDOUBLE)
+             bytes = STACK_ARG_SIZE(sizeof(void*));
+         }
+     }
+  i = cif->nargs;
+  ptr = cif->arg_types;
+  while (i > 0)
+#else
   for (ptr = cif->arg_types, i = cif->nargs; i > 0; i--, ptr++)
+#endif
     {
 
       /* Initialize any uninitialized aggregate type definitions */
@@ -182,6 +203,11 @@ ffi_status FFI_HIDDEN ffi_prep_cif_core(ffi_cif *cif, ffi_abi abi,
       FFI_ASSERT_VALID_TYPE(*ptr);
 
 #if !defined FFI_TARGET_SPECIFIC_STACK_SPACE_ALLOCATION
+#ifdef __VMS
+      if ((*ptr)->type == FFI_TYPE_LONGDOUBLE)
+         bytes += STACK_ARG_SIZE(sizeof(void*));
+      else
+#endif
 	{
 	  /* Add any padding if necessary */
 	  if (((*ptr)->alignment - 1) & bytes)
@@ -203,6 +229,10 @@ ffi_status FFI_HIDDEN ffi_prep_cif_core(ffi_cif *cif, ffi_abi abi,
 
 	  bytes += (unsigned int)STACK_ARG_SIZE((*ptr)->size);
 	}
+#endif
+#ifdef __VMS
+        i--;
+        ptr++;
 #endif
     }
 

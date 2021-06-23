@@ -43,10 +43,23 @@ typedef void *PTR64 __attribute__((mode(DI)));
 /* Memory image of fp register contents.  This is the implementation
    specific format used by ldf.fill/stf.spill.  All we care about is
    that it wants a 16 byte aligned slot.  */
+
+#ifdef __VMS
+#define __NEW_STARLET 1
+#include <psigdef.h>
+#endif
+
+#ifdef __VMS
+#pragma member_alignment save
+#pragma nomember_alignment octaword
+#endif
 typedef struct
 {
   UINT64 x[2] __attribute__((aligned(16)));
 } fpreg;
+#ifdef __VMS
+#pragma member_alignment restore
+#endif
 
 
 /* The stack layout given to ffi_call_unix and ffi_closure_unix_inner.  */
@@ -76,6 +89,10 @@ endian_adjust (void *addr, size_t len)
    point types without type conversions.  Type conversion to long double breaks
    the denorm support.  */
 
+#ifdef __VMS
+extern void stf_spill(void *dst, int dtype, void *src);
+extern void ldf_fill(void *src, int stype, void *dst);
+#else
 #define stf_spill(addr, value)	\
   asm ("stf.spill %0 = %1%P0" : "=m" (*addr) : "f"(value));
 
@@ -84,6 +101,7 @@ endian_adjust (void *addr, size_t len)
 
 #define ldf_fill(result, addr)	\
   asm ("ldf.fill %0 = %1%P1" : "=f"(result) : "m"(*addr));
+#endif
 
 /* Return the size of the C type associated with with TYPE.  Which will
    be one of the FFI_IA64_TYPE_HFA_* values.  */
@@ -98,7 +116,11 @@ hfa_type_size (int type)
     case FFI_IA64_TYPE_HFA_DOUBLE:
       return sizeof(double);
     case FFI_IA64_TYPE_HFA_LDOUBLE:
+#ifdef __VMS
+      return sizeof(long double);
+#else
       return sizeof(__float80);
+#endif
     default:
       abort ();
     }
@@ -110,6 +132,18 @@ hfa_type_size (int type)
 static void
 hfa_type_load (fpreg *fpaddr, int type, void *addr)
 {
+#ifdef __VMS
+  switch (type)
+    {
+    case FFI_IA64_TYPE_HFA_FLOAT:
+    case FFI_IA64_TYPE_HFA_DOUBLE:
+    case FFI_IA64_TYPE_HFA_LDOUBLE:
+      stf_spill (fpaddr, type, addr);
+      return;
+    default:
+      abort ();
+    }
+#else
   switch (type)
     {
     case FFI_IA64_TYPE_HFA_FLOAT:
@@ -124,6 +158,7 @@ hfa_type_load (fpreg *fpaddr, int type, void *addr)
     default:
       abort ();
     }
+#endif
 }
 
 /* Load VALUE into ADDR as indicated by TYPE.  Which will be one of
@@ -136,23 +171,35 @@ hfa_type_store (int type, void *addr, fpreg *fpaddr)
     {
     case FFI_IA64_TYPE_HFA_FLOAT:
       {
+#ifdef __VMS
+        ldf_fill (fpaddr, FFI_IA64_TYPE_HFA_FLOAT, addr);
+#else
 	float result;
 	ldf_fill (result, fpaddr);
 	*(float *) addr = result;
+#endif
 	break;
       }
     case FFI_IA64_TYPE_HFA_DOUBLE:
       {
+#ifdef __VMS
+        ldf_fill (fpaddr, FFI_IA64_TYPE_HFA_DOUBLE, addr);
+#else
 	double result;
 	ldf_fill (result, fpaddr);
 	*(double *) addr = result;
+#endif
 	break;
       }
     case FFI_IA64_TYPE_HFA_LDOUBLE:
       {
+#ifdef __VMS
+        ldf_fill (fpaddr, FFI_IA64_TYPE_HFA_LDOUBLE, addr);
+#else
 	__float80 result;
 	ldf_fill (result, fpaddr);
 	*(__float80 *) addr = result;
+#endif
 	break;
       }
     default:
@@ -238,17 +285,27 @@ ffi_prep_cif_machdep_core(ffi_cif *cif)
   switch (cif->rtype->type)
     {
     case FFI_TYPE_LONGDOUBLE:
+#ifdef __VMS
+       /* HP C for OpenVMS passes a long float as long double * pointer */
+       flags = FFI_TYPE_VOID;
+#else
       /* Leave FFI_TYPE_LONGDOUBLE as meaning double extended precision,
 	 and encode quad precision as a two-word integer structure.  */
       if (LDBL_MANT_DIG != 64)
 	flags = FFI_IA64_TYPE_SMALL_STRUCT | (16 << 8);
+#endif
       break;
 
     case FFI_TYPE_STRUCT:
       {
         size_t size = cif->rtype->size;
   	int hfa_type = hfa_element_type (cif->rtype, 0);
-
+#ifdef __VMS
+        if (size > 8){
+            flags = FFI_TYPE_VOID;
+            break;
+        }
+#endif
 	if (hfa_type != FFI_TYPE_VOID)
 	  {
 	    size_t nelts = size / hfa_type_size (hfa_type);
@@ -262,12 +319,37 @@ ffi_prep_cif_machdep_core(ffi_cif *cif)
 	  }
       }
       break;
-
+#ifdef FFI_TARGET_HAS_COMPLEX_TYPE
+    /* VMS has complex type */
+    case FFI_TYPE_COMPLEX:
+      switch (cif->rtype->elements[0]->type)
+        {
+        case FFI_TYPE_FLOAT:
+            flags = FFI_IA64_TYPE_CPLX_FLOAT;
+            break;
+        case FFI_TYPE_DOUBLE:
+            flags = FFI_IA64_TYPE_CPLX_DOUBLE;
+            break;
+        case FFI_TYPE_LONGDOUBLE:
+        /* HP C for OpenVMS Returns this by hidden parameter */
+            flags = FFI_TYPE_VOID;
+        default:
+        }
+#endif
     default:
       break;
     }
   cif->flags = flags;
 
+#ifdef __VMS
+  /* Adjust cif->bytes to include space for the bits of the ia64_args frame
+     that preceeds the integer register portion.  The estimate that the
+     generic bits did for the argument space required is good enough for the
+     integer component.  */
+  cif->bytes += offsetof(struct ia64_args, gp_regs[0]);
+  if (cif->bytes < sizeof(struct ia64_args))
+     cif->bytes = sizeof(struct ia64_args);
+#endif
   return FFI_OK;
 }
 
@@ -287,7 +369,11 @@ ffi_prep_cif_machdep_var(ffi_cif *cif,
   return ffi_prep_cif_machdep_core(cif);
 }
 
+#ifdef __VMS
+extern int ffi_call_unix (struct ia64_args *, PTR64, void (*)(void), UINT64, long);
+#else
 extern int ffi_call_unix (struct ia64_args *, PTR64, void (*)(void), UINT64);
+#endif
 
 void
 ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
@@ -295,6 +381,11 @@ ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
   struct ia64_args *stack;
   long i, avn, gpcount, fpcount;
   ffi_type **p_arg;
+#ifdef __VMS
+  unsigned long long vms_ai_reg = 0;
+  AIDEF *vms_ai = (AIDEF *)&vms_ai_reg;
+  vms_ai->ai$b_arg_count = cif->nargs;
+#endif
 
   FFI_ASSERT (cif->abi == FFI_UNIX);
 
@@ -302,13 +393,40 @@ ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
   if (rvalue == NULL && cif->rtype->type != FFI_TYPE_VOID)
     rvalue = alloca (cif->rtype->size);
     
+#ifdef __VMS
+  if (rvalue == NULL && cif->rtype->type == FFI_TYPE_COMPLEX && cif->flags == FFI_TYPE_VOID)
+    rvalue = alloca (cif->rtype->size);
+#endif
+
   /* Allocate the stack frame.  */
   stack = alloca (cif->bytes);
 
   gpcount = fpcount = 0;
+#ifdef __VMS
+  memset (stack, 0, cif->bytes);
+  if (rvalue && ((cif->rtype->type == FFI_TYPE_STRUCT && cif->rtype->size > 8) || (cif->rtype->type == FFI_TYPE_LONGDOUBLE) || ((cif->rtype->type == FFI_TYPE_COMPLEX) && (cif->flags == FFI_TYPE_VOID)))) {
+    stack->gp_regs[gpcount++] = (UINT64)(PTR64)(rvalue);
+    vms_ai->ai$b_arg_count++;
+  }
+#endif
+
   avn = cif->nargs;
+#ifdef __VMS
+  i = 0;
+  p_arg = cif->arg_types;
+  for (; i < avn; i++, p_arg++)
+#else
   for (i = 0, p_arg = cif->arg_types; i < avn; i++, p_arg++)
+#endif
     {
+#if defined(__VMS)
+#ifdef FFI_TARGET_HAS_COMPLEX_TYPE
+      int type;
+      UINT64 *avalue_ptr;
+      UINT32 *avalue32_ptr;
+#endif
+      fpcount = gpcount;
+#endif
       switch ((*p_arg)->type)
 	{
 	case FFI_TYPE_SINT8:
@@ -324,11 +442,17 @@ ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
 	  stack->gp_regs[gpcount++] = *(UINT16 *)avalue[i];
 	  break;
 	case FFI_TYPE_SINT32:
+#ifdef __VMS
+        /* Note that unsigned 32-bit quantities are sign extended on VMS */
+        case FFI_TYPE_UINT32:
+#endif
 	  stack->gp_regs[gpcount++] = *(SINT32 *)avalue[i];
 	  break;
+#ifndef __VMS
 	case FFI_TYPE_UINT32:
 	  stack->gp_regs[gpcount++] = *(UINT32 *)avalue[i];
 	  break;
+#endif
 	case FFI_TYPE_SINT64:
 	case FFI_TYPE_UINT64:
 	  stack->gp_regs[gpcount++] = *(UINT64 *)avalue[i];
@@ -339,8 +463,16 @@ ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
 	  break;
 
 	case FFI_TYPE_FLOAT:
+#ifdef __VMS
+          if (gpcount < 8)
+            vms_ai->ai$v_arg_reg_info |= (AI$K_AR_FS << (gpcount * 3));
+#endif
 	  if (gpcount < 8 && fpcount < 8)
+#ifdef __VMS
+            stf_spill (&stack->fp_regs[fpcount++], FFI_IA64_TYPE_HFA_FLOAT, avalue[i]);
+#else
 	    stf_spill (&stack->fp_regs[fpcount++], *(float *)avalue[i]);
+#endif
 	  {
 	    UINT32 tmp;
 	    memcpy (&tmp, avalue[i], sizeof (UINT32));
@@ -349,18 +481,30 @@ ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
 	  break;
 
 	case FFI_TYPE_DOUBLE:
+#ifdef __VMS
+          if (gpcount < 8)
+            vms_ai->ai$v_arg_reg_info |= (AI$K_AR_FT << (gpcount * 3));
+#endif
 	  if (gpcount < 8 && fpcount < 8)
+#ifdef __VMS
+            stf_spill (&stack->fp_regs[fpcount++], FFI_IA64_TYPE_HFA_DOUBLE, avalue[i]);
+#else
 	    stf_spill (&stack->fp_regs[fpcount++], *(double *)avalue[i]);
+#endif
 	  memcpy (&stack->gp_regs[gpcount++], avalue[i], sizeof (UINT64));
 	  break;
 
 	case FFI_TYPE_LONGDOUBLE:
+#ifdef __VMS
+          stack->gp_regs[gpcount++]=(UINT64)(PTR64)avalue[i];
+#else
 	  if (gpcount & 1)
 	    gpcount++;
 	  if (LDBL_MANT_DIG == 64 && gpcount < 8 && fpcount < 8)
 	    stf_spill (&stack->fp_regs[fpcount++], *(__float80 *)avalue[i]);
 	  memcpy (&stack->gp_regs[gpcount], avalue[i], 16);
 	  gpcount += 2;
+#endif
 	  break;
 
 	case FFI_TYPE_STRUCT:
@@ -370,10 +514,15 @@ ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
 	    int hfa_type = hfa_element_type (*p_arg, 0);
 
 	    FFI_ASSERT (align <= 16);
+#ifndef __VMS
 	    if (align == 16 && (gpcount & 1))
 	      gpcount++;
-
+#endif
+#ifdef __VMS
+            if (hfa_type != FFI_TYPE_VOID && size <= 8)
+#else
 	    if (hfa_type != FFI_TYPE_VOID)
+#endif
 	      {
 		size_t hfa_size = hfa_type_size (hfa_type);
 		size_t offset = 0;
@@ -383,8 +532,13 @@ ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
 		       && offset < size
 		       && gp_offset < 8 * 8)
 		  {
+#ifdef __VMS
+		    hfa_type_load (&stack->fp_regs[fpcount], hfa_type,
+				   ((char *)avalue[i] + offset));
+#else
 		    hfa_type_load (&stack->fp_regs[fpcount], hfa_type,
 				   avalue[i] + offset);
+#endif
 		    offset += hfa_size;
 		    gp_offset += hfa_size;
 		    fpcount += 1;
@@ -396,12 +550,130 @@ ffi_call(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
 	  }
 	  break;
 
+#ifdef FFI_TARGET_HAS_COMPLEX_TYPE
+        case FFI_TYPE_COMPLEX:
+          type = (*p_arg)->elements[0]->type;
+          avalue_ptr = avalue[i];
+          avalue32_ptr = (UINT32 *)avalue[i];
+          switch (type)
+            {
+              case FFI_TYPE_SINT64:
+              case FFI_TYPE_UINT64:
+                /* Passed as separate arguments, but they wind up sequential.  */
+                stack->gp_regs[gpcount++] = avalue_ptr[0];
+                stack->gp_regs[gpcount++] = avalue_ptr[1];
+#ifdef __VMS
+                vms_ai->ai$b_arg_count++;
+#endif
+                break;
+
+            case FFI_TYPE_INT:
+            case FFI_TYPE_SINT8:
+            case FFI_TYPE_UINT8:
+            case FFI_TYPE_SINT16:
+            case FFI_TYPE_UINT16:
+            case FFI_TYPE_SINT32:
+            case FFI_TYPE_UINT32:
+              /* Passed as separate arguments.  Disjoint, but there's room");
+                  enough in one slot to hold the pair.  */
+                stack->gp_regs[gpcount++] = avalue_ptr[0];
+                break;
+
+              case FFI_TYPE_FLOAT:
+#ifdef __VMS
+                if (gpcount < 8)
+                  vms_ai->ai$v_arg_reg_info |= (AI$K_AR_FS << (gpcount * 3));
+#endif
+                if (gpcount < 8 && fpcount < 8)
+                  stf_spill (&stack->fp_regs[fpcount++],
+#ifdef __VMS
+                             FFI_IA64_TYPE_HFA_FLOAT, &avalue32_ptr[0]);
+#else
+                             (float *)&avalue32_ptr[0]);
+#endif
+                {
+                  UINT32 tmp;
+                  memcpy (&tmp, &avalue32_ptr[0], sizeof (UINT32));
+                  stack->gp_regs[gpcount++] = tmp;
+                }
+#ifdef __VMS
+          if (gpcount < 8)
+            vms_ai->ai$v_arg_reg_info |= (AI$K_AR_FS << (gpcount * 3));
+#endif
+                if (gpcount < 8 && fpcount < 8)
+                  stf_spill (&stack->fp_regs[fpcount++],
+#ifdef __VMS
+                             FFI_IA64_TYPE_HFA_FLOAT, &avalue32_ptr[1]);
+#else
+                             (float *)&avalue32_ptr[1]);
+#endif
+                {
+                  UINT32 tmp;
+                  memcpy (&tmp, &avalue32_ptr[1], sizeof (UINT32));
+                  stack->gp_regs[gpcount++] = tmp;
+                }
+#ifdef __VMS
+                vms_ai->ai$b_arg_count++;
+#endif
+                break;
+
+              case FFI_TYPE_DOUBLE:
+#ifdef __VMS
+          if (gpcount < 8)
+            vms_ai->ai$v_arg_reg_info |= (AI$K_AR_FT << (gpcount * 3));
+#endif
+                if (gpcount < 8 && fpcount < 8)
+                  stf_spill (&stack->fp_regs[fpcount++],
+#ifdef __VMS
+                             FFI_IA64_TYPE_HFA_DOUBLE, &avalue_ptr[0]);
+#else
+                             (double *)&avalue_ptr[0]);
+#endif
+                  memcpy (&stack->gp_regs[gpcount++], &avalue_ptr[0], sizeof (UINT64));
+#ifdef __VMS
+          if (gpcount < 8)
+            vms_ai->ai$v_arg_reg_info |= (AI$K_AR_FT << (gpcount * 3));
+#endif
+                if (gpcount < 8 && fpcount < 8)
+                  stf_spill (&stack->fp_regs[fpcount++],
+#ifdef __VMS
+                             FFI_IA64_TYPE_HFA_DOUBLE, &avalue_ptr[1]);
+#else
+                             (double *)&avalue_ptr[1]);
+#endif
+                memcpy (&stack->gp_regs[gpcount++],
+                        &avalue_ptr[1], sizeof (UINT64));
+#ifdef __VMS
+                vms_ai->ai$b_arg_count++;
+#endif
+                break;
+              case FFI_TYPE_LONGDOUBLE:
+#ifndef __VMS
+                if (gpcount & 1)
+                  gpcount++;
+                if (LDBL_MANT_DIG == 64 && gpcount < 8 && fpcount < 8)
+                  stf_spill (&stack->fp_regs[fpcount++], *(__float80 *)avalue[i]);
+                memcpy (&stack->gp_regs[gpcount], avalue[i], 32);
+                gpcount += 4;
+#else
+                stack->gp_regs[gpcount++] = (UINT64) (PTR64)avalue[i];
+#endif
+                break;
+              default:
+                break;
+            }
+          break;
+#endif
 	default:
 	  abort ();
 	}
     }
 
+#ifdef __VMS
+  ffi_call_unix (stack, rvalue, fn, cif->flags, vms_ai_reg);
+#else
   ffi_call_unix (stack, rvalue, fn, cif->flags);
+#endif
 }
 
 /* Closures represent a pair consisting of a function pointer, and
@@ -483,7 +755,17 @@ ffi_closure_unix_inner (ffi_closure *closure, struct ia64_args *stack,
     rvalue = r8;
 
   gpcount = fpcount = 0;
+#ifdef __VMS
+  if (cif->rtype->type == FFI_TYPE_LONGDOUBLE || (cif->rtype->type == FFI_TYPE_STRUCT && cif->rtype->size > 8)){
+      rvalue = endian_adjust((void *)stack->gp_regs[0], sizeof(void *));
+      gpcount = fpcount = 1;
+  }
+  i = 0;
+  p_arg = cif->arg_types;
+  for (; i < avn; i++, p_arg++)
+#else
   for (i = 0, p_arg = cif->arg_types; i < avn; i++, p_arg++)
+#endif
     {
       int named = i < nfixedargs;
       switch ((*p_arg)->type)
@@ -509,13 +791,20 @@ ffi_closure_unix_inner (ffi_closure *closure, struct ia64_args *stack,
 	  break;
 
 	case FFI_TYPE_FLOAT:
+#ifdef __VMS
+          fpcount = gpcount;
+#endif
 	  if (named && gpcount < 8 && fpcount < 8)
 	    {
 	      fpreg *addr = &stack->fp_regs[fpcount++];
 	      float result;
 	      avalue[i] = addr;
+#ifdef __VMS
+              ldf_fill (addr, FFI_IA64_TYPE_HFA_FLOAT, addr);
+#else
 	      ldf_fill (result, addr);
 	      *(float *)addr = result;
+#endif
 	    }
 	  else
 	    avalue[i] = endian_adjust(&stack->gp_regs[gpcount], 4);
@@ -523,13 +812,20 @@ ffi_closure_unix_inner (ffi_closure *closure, struct ia64_args *stack,
 	  break;
 
 	case FFI_TYPE_DOUBLE:
+#ifdef __VMS
+          fpcount = gpcount;
+#endif
 	  if (named && gpcount < 8 && fpcount < 8)
 	    {
 	      fpreg *addr = &stack->fp_regs[fpcount++];
 	      double result;
 	      avalue[i] = addr;
+#ifdef __VMS
+              ldf_fill (addr, FFI_IA64_TYPE_HFA_DOUBLE, addr);
+#else
 	      ldf_fill (result, addr);
 	      *(double *)addr = result;
+#endif
 	    }
 	  else
 	    avalue[i] = &stack->gp_regs[gpcount];
@@ -537,6 +833,7 @@ ffi_closure_unix_inner (ffi_closure *closure, struct ia64_args *stack,
 	  break;
 
 	case FFI_TYPE_LONGDOUBLE:
+#ifndef __VMS
 	  if (gpcount & 1)
 	    gpcount++;
 	  if (LDBL_MANT_DIG == 64 && named && gpcount < 8 && fpcount < 8)
@@ -550,6 +847,9 @@ ffi_closure_unix_inner (ffi_closure *closure, struct ia64_args *stack,
 	  else
 	    avalue[i] = &stack->gp_regs[gpcount];
 	  gpcount += 2;
+#else
+           avalue[i] = endian_adjust((void *)stack->gp_regs[gpcount++], sizeof(void*));
+#endif
 	  break;
 
 	case FFI_TYPE_STRUCT:
@@ -559,8 +859,14 @@ ffi_closure_unix_inner (ffi_closure *closure, struct ia64_args *stack,
 	    int hfa_type = hfa_element_type (*p_arg, 0);
 
 	    FFI_ASSERT (align <= 16);
+#ifndef __VMS
 	    if (align == 16 && (gpcount & 1))
 	      gpcount++;
+#endif
+#ifdef __VMS
+            if (size > 8)
+               hfa_type = FFI_TYPE_VOID;
+#endif
 
 	    if (hfa_type != FFI_TYPE_VOID)
 	      {
@@ -575,16 +881,26 @@ ffi_closure_unix_inner (ffi_closure *closure, struct ia64_args *stack,
 		       && offset < size
 		       && gp_offset < 8 * 8)
 		  {
+#ifdef __VMS
+                    hfa_type_store (hfa_type, (char *)addr + offset,
+				    &stack->fp_regs[fpcount]);
+#else
 		    hfa_type_store (hfa_type, addr + offset,
 				    &stack->fp_regs[fpcount]);
+#endif
 		    offset += hfa_size;
 		    gp_offset += hfa_size;
 		    fpcount += 1;
 		  }
 
 		if (offset < size)
+#ifdef __VMS
+                  memcpy ((char *)addr + offset, (char *)stack->gp_regs + gp_offset,
+			  size - offset);
+#else
 		  memcpy (addr + offset, (char *)stack->gp_regs + gp_offset,
 			  size - offset);
+#endif
 	      }
 	    else
 	      avalue[i] = &stack->gp_regs[gpcount];

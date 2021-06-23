@@ -86,6 +86,14 @@
 #define PRIuPTR "lu"
 #endif
 
+#ifdef __VMS
+#define PRId8 "d"
+#define PRIu8 "u"
+#define PRId64 "lld"
+#define PRIu64 "llu"
+#define PRIuPTR "llu"
+#endif
+
 /* PA HP-UX kludge.  */
 #if defined(__hppa__) && defined(__hpux__) && !defined(PRIuPTR)
 #define PRIuPTR "lu"
