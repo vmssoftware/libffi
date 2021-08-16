@@ -89,7 +89,7 @@ typedef enum ffi_abi {
   FFI_DEFAULT_ABI = FFI_WIN64
 #endif  
 
-#elif defined(X86_64) || (defined (__x86_64__) && defined (X86_DARWIN))
+#elif defined(X86_64) || defined(__VMS) || (defined (__x86_64__) && defined (X86_DARWIN))
   FFI_FIRST_ABI = 1,
   FFI_UNIX64,
   FFI_WIN64,
@@ -134,7 +134,7 @@ typedef enum ffi_abi {
 #define FFI_TYPE_SMALL_STRUCT_4B (FFI_TYPE_LAST + 3)
 #define FFI_TYPE_MS_STRUCT       (FFI_TYPE_LAST + 4)
 
-#if defined (X86_64) || defined(X86_WIN64) \
+#if defined (X86_64) || defined(__VMS) || defined(X86_WIN64) \
     || (defined (__x86_64__) && defined (X86_DARWIN))
 /* 4 bytes of ENDBR64 + 7 bytes of LEA + 6 bytes of JMP + 7 bytes of NOP
    + 8 bytes of pointer.  */

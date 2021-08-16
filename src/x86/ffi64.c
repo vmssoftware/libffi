@@ -56,7 +56,9 @@ union big_int_union
 {
   UINT32 i32;
   UINT64 i64;
+#ifndef __VMS
   UINT128 i128;
+#endif
 };
 
 struct register_args
@@ -389,9 +391,11 @@ examine_argument (ffi_type *type, enum x86_64_reg_class classes[MAX_CLASSES],
 
 /* Perform machine dependent cif processing.  */
 
+#ifndef __VMS
 #ifndef __ILP32__
 extern ffi_status
 ffi_prep_cif_machdep_efi64(ffi_cif *cif);
+#endif
 #endif
 
 ffi_status FFI_HIDDEN
@@ -403,9 +407,11 @@ ffi_prep_cif_machdep (ffi_cif *cif)
   size_t bytes, n, rtype_size;
   ffi_type *rtype;
 
+#ifndef __VMS
 #ifndef __ILP32__
   if (cif->abi == FFI_EFI64 || cif->abi == FFI_GNUW64)
     return ffi_prep_cif_machdep_efi64(cif);
+#endif
 #endif
   if (cif->abi != FFI_UNIX64)
     return FFI_BAD_ABI;
@@ -670,14 +676,17 @@ ffi_call_int (ffi_cif *cif, void (*fn)(void), void *rvalue,
 		   flags, rvalue, fn);
 }
 
+#ifndef __VMS
 #ifndef __ILP32__
 extern void
 ffi_call_efi64(ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue);
+#endif
 #endif
 
 void
 ffi_call (ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
 {
+#ifndef __VMS
 #ifndef __ILP32__
   if (cif->abi == FFI_EFI64 || cif->abi == FFI_GNUW64)
     {
@@ -685,25 +694,30 @@ ffi_call (ffi_cif *cif, void (*fn)(void), void *rvalue, void **avalue)
       return;
     }
 #endif
+#endif
   ffi_call_int (cif, fn, rvalue, avalue, NULL);
 }
 
+#ifndef __VMS
 #ifndef __ILP32__
 extern void
 ffi_call_go_efi64(ffi_cif *cif, void (*fn)(void), void *rvalue,
 		  void **avalue, void *closure);
+#endif
 #endif
 
 void
 ffi_call_go (ffi_cif *cif, void (*fn)(void), void *rvalue,
 	     void **avalue, void *closure)
 {
+#ifndef __VMS
 #ifndef __ILP32__
   if (cif->abi == FFI_EFI64 || cif->abi == FFI_GNUW64)
     {
       ffi_call_go_efi64(cif, fn, rvalue, avalue, closure);
       return;
     }
+#endif
 #endif
   ffi_call_int (cif, fn, rvalue, avalue, closure);
 }
@@ -712,6 +726,7 @@ ffi_call_go (ffi_cif *cif, void (*fn)(void), void *rvalue,
 extern void ffi_closure_unix64(void) FFI_HIDDEN;
 extern void ffi_closure_unix64_sse(void) FFI_HIDDEN;
 
+#ifndef __VMS
 #ifndef __ILP32__
 extern ffi_status
 ffi_prep_closure_loc_efi64(ffi_closure* closure,
@@ -719,6 +734,7 @@ ffi_prep_closure_loc_efi64(ffi_closure* closure,
 			   void (*fun)(ffi_cif*, void*, void**, void*),
 			   void *user_data,
 			   void *codeloc);
+#endif
 #endif
 
 ffi_status
@@ -741,9 +757,11 @@ ffi_prep_closure_loc (ffi_closure* closure,
   void (*dest)(void);
   char *tramp = closure->tramp;
 
+#ifndef __VMS
 #ifndef __ILP32__
   if (cif->abi == FFI_EFI64 || cif->abi == FFI_GNUW64)
     return ffi_prep_closure_loc_efi64(closure, cif, fun, user_data, codeloc);
+#endif
 #endif
   if (cif->abi != FFI_UNIX64)
     return FFI_BAD_ABI;
@@ -859,19 +877,23 @@ ffi_closure_unix64_inner(ffi_cif *cif,
 extern void ffi_go_closure_unix64(void) FFI_HIDDEN;
 extern void ffi_go_closure_unix64_sse(void) FFI_HIDDEN;
 
+#ifndef __VMS
 #ifndef __ILP32__
 extern ffi_status
 ffi_prep_go_closure_efi64(ffi_go_closure* closure, ffi_cif* cif,
 			  void (*fun)(ffi_cif*, void*, void**, void*));
+#endif
 #endif
 
 ffi_status
 ffi_prep_go_closure (ffi_go_closure* closure, ffi_cif* cif,
 		     void (*fun)(ffi_cif*, void*, void**, void*))
 {
+#ifndef __VMS
 #ifndef __ILP32__
   if (cif->abi == FFI_EFI64 || cif->abi == FFI_GNUW64)
     return ffi_prep_go_closure_efi64(closure, cif, fun);
+#endif
 #endif
   if (cif->abi != FFI_UNIX64)
     return FFI_BAD_ABI;
