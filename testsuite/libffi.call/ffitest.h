@@ -87,6 +87,12 @@
 #endif
 
 #ifdef __VMS
+#undef PRId8
+#undef PRIu8
+#undef PRId64
+#undef PRIu64
+#undef PRIuPTR
+
 #define PRId8 "d"
 #define PRIu8 "u"
 #define PRId64 "lld"

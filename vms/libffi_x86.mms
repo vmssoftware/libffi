@@ -1,5 +1,13 @@
 ! MMS/EXT/DESCR=libffi_x86.mms/MACRO=("OUTDIR=OUT","CONFIG=DEBUG","POINTER=32")
 
+! define pointer size
+.IF POINTER
+! defined - ok
+.ELSE
+! not defined - define as 32
+POINTER = 32
+.ENDIF
+
 CC_QUALIFIERS = -
 /NAMES=(AS_IS,SHORTENED) -
 /NOOPT -
@@ -104,12 +112,12 @@ CC_FLAGS = $(CC_QUALIFIERS)/DEFINE=($(CC_DEFINES))/INCLUDE_DIRECTORY=($(CC_INCLU
     $(LIBR) $(MMS$TARGET) $(MMS$SOURCE)
 
 ##########################################################################
-TARGET : [.$(OUT_DIR)]libffi$shr32.exe
+TARGET : [.$(OUT_DIR)]libffi$shr$(POINTER).exe, TESTSUITE
     ! TARGET BUILT
 
-[.$(OUT_DIR)]libffi$shr32.exe : [.$(OUT_DIR)]libffi$shr32.olb
+[.$(OUT_DIR)]libffi$shr$(POINTER).exe : [.$(OUT_DIR)]libffi$shr$(POINTER).olb
     @ pipe create/dir $(DIR $(MMS$TARGET)) | copy SYS$INPUT nl:
-    $(LINK) /SHARE=libffi$build_out:[000000]$(NOTDIR $(MMS$TARGET_NAME)).exe [.$(OUT_DIR)]libffi$shr32.olb/lib,[.vms]libffi.opt/opt
+    $(LINK) $(LINK_FLAGS)/SHARE=libffi$build_out:[000000]$(NOTDIR $(MMS$TARGET_NAME)).exe [.$(OUT_DIR)]libffi$shr$(POINTER).olb/lib,[.vms]libffi.opt/opt
 
 LIBRARY_OBJS= -
 [.$(OBJ_DIR)]openvms64.obj -
@@ -122,7 +130,7 @@ LIBRARY_OBJS= -
 
 ############################################################################
 # Library
-[.$(OUT_DIR)]libffi$shr32.olb : [.$(OUT_DIR)]libffi$shr32.olb($(LIBRARY_OBJS))
+[.$(OUT_DIR)]libffi$shr$(POINTER).olb : [.$(OUT_DIR)]libffi$shr$(POINTER).olb($(LIBRARY_OBJS))
     continue
 
 [.$(OBJ_DIR)]openvms64.i : [.vms]openvms64.s
@@ -140,3 +148,14 @@ LIBRARY_OBJS= -
 CLEAN :
     del/tree [.$(OUT_DIR)...]*.*;*
 
+############################################################################
+TESTSUITEFILES = -
+[.$(OUT_DIR)]align_mixed.exe
+
+TESTSUITE : $(TESTSUITEFILES)
+    ! ok
+
+[.$(OUT_DIR)]align_mixed.exe : [.$(OBJ_DIR)]align_mixed.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
+    $(LINK) $(LINK_FLAGS) /SHARE=libffi$build_out:[000000]$(NOTDIR $(MMS$TARGET_NAME)).exe $(MMS$SOURCE),[.$(OUT_DIR)]libffi$shr$(POINTER).olb/lib
+
+[.$(OBJ_DIR)]align_mixed.obj : [.testsuite.libffi^.call]align_mixed.c
