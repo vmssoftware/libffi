@@ -63,9 +63,8 @@ CC_S_QUALIFIERS = -
 
 CC_S_INCLUDES = -
 [.vms], -
-[.vms.include], -
-[.src.x86], -
-[]
+[], -
+[.src.x86]
 
 CC_INCLUDES = $(CC_S_INCLUDES), [.include], [.src]
 
@@ -93,10 +92,7 @@ CC_FLAGS = $(CC_QUALIFIERS)/DEFINE=($(CC_DEFINES))/INCLUDE_DIRECTORY=($(CC_INCLU
     $(CC) $(CC_S_FLAGS) $(MMS$SOURCE)
 
 .I.ASM
-    SAVE_DIR = F$DIRECTORY()
-    SET DEFAULT $(DIR $(MMS$TARGET))
-    python -c "with open('$(NOTDIR $(MMS$TARGET_NAME)).i') as fi, open('$(NOTDIR $(MMS$TARGET_NAME)).asm', 'w') as fo: fo.writelines(list(fi))"
-    SET DEFAULT 'SAVE_DIR'
+    python vms/make_asm.py "$(MMS$TARGET_NAME).i"
 
 .ASM.OBJ
     @ pipe create/dir $(DIR $(MMS$TARGET)) | copy SYS$INPUT nl:
@@ -133,7 +129,7 @@ LIBRARY_OBJS= -
 [.$(OUT_DIR)]libffi$shr$(POINTER).olb : [.$(OUT_DIR)]libffi$shr$(POINTER).olb($(LIBRARY_OBJS))
     continue
 
-[.$(OBJ_DIR)]openvms64.i : [.vms]openvms64.s
+[.$(OBJ_DIR)]openvms64.i : [.src.x86]openvms64.s
 [.$(OBJ_DIR)]openvms64.asm : [.$(OBJ_DIR)]openvms64.i
 [.$(OBJ_DIR)]openvms64.obj : [.$(OBJ_DIR)]openvms64.asm
 
