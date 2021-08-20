@@ -24,6 +24,7 @@ with open(unix_name) as fi, open(new_unix_name, "w") as fo:
     for l in fi.readlines():
         l = re.sub("\.\s+L(\S+)", ".L\g<1>", l)
         l = re.sub("L(\S+)\s+@\s+rel", "L\g<1>@rel", l)
+        l = re.sub("L(\S+)\s+@\s+PLT", "L\g<1>@PLT", l)
         l = re.sub("\.\s+balign", ".balign", l)
         l = re.sub("\.\s+byte", ".byte", l)
         fo.write(l)

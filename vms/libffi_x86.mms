@@ -121,8 +121,8 @@ LIBRARY_OBJS= -
 [.$(OBJ_DIR)]types.obj -
 - ! [.$(OBJ_DIR)]raw_api.obj -
 - ! [.$(OBJ_DIR)]java_raw_api.obj -
-- ! [.$(OBJ_DIR)]closures.obj -
-[.$(OBJ_DIR)]ffi64.obj
+[.$(OBJ_DIR)]closures.obj -
+[.$(OBJ_DIR)]ffiopenvms64.obj
 
 ############################################################################
 # Library
@@ -137,8 +137,8 @@ LIBRARY_OBJS= -
 [.$(OBJ_DIR)]types.obj : [.src]types.c
 ! [.$(OBJ_DIR)]raw_api.obj : [.src]raw_api.c
 ! [.$(OBJ_DIR)]java_raw_api.obj : [.src]java_raw_api.c
-! [.$(OBJ_DIR)]closures.obj : [.src]closures.c
-[.$(OBJ_DIR)]ffi64.obj : [.src.x86]ffi64.c
+[.$(OBJ_DIR)]closures.obj : [.src]closures.c
+[.$(OBJ_DIR)]ffiopenvms64.obj : [.src.x86]ffiopenvms64.c
 
 ############################################################################
 CLEAN :

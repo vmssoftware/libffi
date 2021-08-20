@@ -15,7 +15,7 @@
 # define L(X)     C1(.L, X)
 #endif
 
-#if defined(__ELF__) && defined(__PIC__)
+#if defined(__VMS) || (defined(__ELF__) && defined(__PIC__))
 # define PLT(X)	  X@PLT
 #else
 # define PLT(X)	  X

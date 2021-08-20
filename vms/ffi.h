@@ -49,8 +49,8 @@ extern "C" {
 #endif
 
 /* Specify which architecture libffi is configured for. */
-#ifndef X86_64
-#define X86_64
+#ifndef X86_64_VMS
+#define X86_64_VMS
 #endif
 
 /* ---- System configuration information --------------------------------- */

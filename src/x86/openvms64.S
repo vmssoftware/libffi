@@ -52,7 +52,7 @@
 # endif
 #endif
 
-/* ffi_call_unix64 (void *args, unsigned long bytes, unsigned flags,
+/* ffi_call_openvms64 (void *args, unsigned long bytes, unsigned flags,
 	            void *raddr, void (*fnaddr)(void));
 
    Bit o trickiness here -- ARGS+BYTES is the base of the stack frame
@@ -60,10 +60,10 @@
    deallocate some of the stack that has been alloca'd.  */
 
 	.balign	8
-	.globl	C(ffi_call_unix64)
-	FFI_HIDDEN(C(ffi_call_unix64))
+	.globl	C(ffi_call_openvms64)
+	FFI_HIDDEN(C(ffi_call_openvms64))
 
-C(ffi_call_unix64):
+C(ffi_call_openvms64):
 L(UW0):
 	_CET_ENDBR
 	movq	(%rsp), %r10		/* Load return address.  */
@@ -218,7 +218,7 @@ L(s3):
 	rep movsb
 	ret
 
-L(sa):	call	PLT(C(abort))
+L(sa):	call	PLT(C(decc$abort))
 
 	/* Many times we can avoid loading any SSE registers at all.
 	   It's not worth an indirect jump to load the exact set of
@@ -238,7 +238,7 @@ L(load_sse):
 	jmp	L(ret_from_load_sse)
 
 L(UW4):
-ENDF(C(ffi_call_unix64))
+ENDF(C(ffi_call_openvms64))
 
 /* 6 general registers, 8 vector registers,
    32 bytes of rvalue, 8 bytes of alignment.  */
@@ -251,10 +251,10 @@ ENDF(C(ffi_call_unix64))
 #define ffi_closure_RED_RVALUE	(ffi_closure_OFS_RVALUE - ffi_closure_FS)
 
 	.balign	2
-	.globl	C(ffi_closure_unix64_sse)
-	FFI_HIDDEN(C(ffi_closure_unix64_sse))
+	.globl	C(ffi_closure_openvms64_sse)
+	FFI_HIDDEN(C(ffi_closure_openvms64_sse))
 
-C(ffi_closure_unix64_sse):
+C(ffi_closure_openvms64_sse):
 L(UW5):
 	_CET_ENDBR
 	subq	AS$(ffi_closure_FS), %rsp
@@ -272,13 +272,13 @@ L(UW6):
 	jmp	L(sse_entry1)
 
 L(UW7):
-ENDF(C(ffi_closure_unix64_sse))
+ENDF(C(ffi_closure_openvms64_sse))
 
 	.balign	2
-	.globl	C(ffi_closure_unix64)
-	FFI_HIDDEN(C(ffi_closure_unix64))
+	.globl	C(ffi_closure_openvms64)
+	FFI_HIDDEN(C(ffi_closure_openvms64))
 
-C(ffi_closure_unix64):
+C(ffi_closure_openvms64):
 L(UW8):
 	_CET_ENDBR
 	subq	AS$(ffi_closure_FS), %rsp
@@ -305,7 +305,7 @@ L(do_closure):
 	leaq	ffi_closure_OFS_RVALUE(%rsp), %rcx	/* Load rvalue */
 	movq	%rsp, %r8				/* Load reg_args */
 	leaq	ffi_closure_FS+8(%rsp), %r9		/* Load argp */
-	call	PLT(C(ffi_closure_unix64_inner))
+	call	PLT(C(ffi_closure_openvms64_inner))
 
 	/* Deallocate stack frame early; return value is now in redzone.  */
 	addq	AS$(ffi_closure_FS), %rsp
@@ -399,16 +399,16 @@ L(l3):
 	movq	(%rsi), %xmm0
 	ret
 
-L(la):	call	PLT(C(abort))
+L(la):	call	PLT(C(decc$abort))
 
 L(UW11):
-ENDF(C(ffi_closure_unix64))
+ENDF(C(ffi_closure_openvms64))
 
 	.balign	2
-	.globl	C(ffi_go_closure_unix64_sse)
-	FFI_HIDDEN(C(ffi_go_closure_unix64_sse))
+	.globl	C(ffi_go_closure_openvms64_sse)
+	FFI_HIDDEN(C(ffi_go_closure_openvms64_sse))
 
-C(ffi_go_closure_unix64_sse):
+C(ffi_go_closure_openvms64_sse):
 L(UW12):
 	_CET_ENDBR
 	subq	AS$(ffi_closure_FS), %rsp
@@ -426,13 +426,13 @@ L(UW13):
 	jmp	L(sse_entry2)
 
 L(UW14):
-ENDF(C(ffi_go_closure_unix64_sse))
+ENDF(C(ffi_go_closure_openvms64_sse))
 
 	.balign	2
-	.globl	C(ffi_go_closure_unix64)
-	FFI_HIDDEN(C(ffi_go_closure_unix64))
+	.globl	C(ffi_go_closure_openvms64)
+	FFI_HIDDEN(C(ffi_go_closure_openvms64))
 
-C(ffi_go_closure_unix64):
+C(ffi_go_closure_openvms64):
 L(UW15):
 	_CET_ENDBR
 	subq	AS$(ffi_closure_FS), %rsp
@@ -458,7 +458,7 @@ L(sse_entry2):
 	jmp	L(do_closure)
 
 L(UW17):
-ENDF(C(ffi_go_closure_unix64))
+ENDF(C(ffi_go_closure_openvms64))
 
 /* Sadly, OSX cctools-as doesn't understand .cfi directives at all.  */
 
@@ -578,40 +578,40 @@ L(EFDE5):
 	.subsections_via_symbols
 	.section __LD,__compact_unwind,regular,debug
 
-	/* compact unwind for ffi_call_unix64 */
-	.quad    C(ffi_call_unix64)
+	/* compact unwind for ffi_call_openvms64 */
+	.quad    C(ffi_call_openvms64)
 	.set     L1,L(UW4)-L(UW0)
 	.long    L1
 	.long    0x04000000 /* use dwarf unwind info */
 	.quad    0
 	.quad    0
 
-	/* compact unwind for ffi_closure_unix64_sse */
-	.quad    C(ffi_closure_unix64_sse)
+	/* compact unwind for ffi_closure_openvms64_sse */
+	.quad    C(ffi_closure_openvms64_sse)
 	.set     L2,L(UW7)-L(UW5)
 	.long    L2
 	.long    0x04000000 /* use dwarf unwind info */
 	.quad    0
 	.quad    0
 
-	/* compact unwind for ffi_closure_unix64 */
-	.quad    C(ffi_closure_unix64)
+	/* compact unwind for ffi_closure_openvms64 */
+	.quad    C(ffi_closure_openvms64)
 	.set     L3,L(UW11)-L(UW8)
 	.long    L3
 	.long    0x04000000 /* use dwarf unwind info */
 	.quad    0
 	.quad    0
 
-	/* compact unwind for ffi_go_closure_unix64_sse */
-	.quad    C(ffi_go_closure_unix64_sse)
+	/* compact unwind for ffi_go_closure_openvms64_sse */
+	.quad    C(ffi_go_closure_openvms64_sse)
 	.set     L4,L(UW14)-L(UW12)
 	.long    L4
 	.long    0x04000000 /* use dwarf unwind info */
 	.quad    0
 	.quad    0
 
-	/* compact unwind for ffi_go_closure_unix64 */
-	.quad    C(ffi_go_closure_unix64)
+	/* compact unwind for ffi_go_closure_openvms64 */
+	.quad    C(ffi_go_closure_openvms64)
 	.set     L5,L(UW17)-L(UW15)
 	.long    L5
 	.long    0x04000000 /* use dwarf unwind info */
