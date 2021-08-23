@@ -478,7 +478,7 @@ EHFrame0:
 #ifdef HAVE_AS_X86_PCREL
 # define PCREL(X)	X - .
 #else
-# define PCREL(X)	X@rel
+# define PCREL(X)	X@GOTPCREL(%rip)
 #endif
 
 /* Simplify advancing between labels.  Assume DW_CFA_advance_loc1 fits.  */

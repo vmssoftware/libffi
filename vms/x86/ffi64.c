@@ -41,6 +41,7 @@
 #define MAX_SSE_REGS 8
 
 #ifdef __VMS
+extern int printf(const char *__format, ...);
 typedef struct {
     UINT64 lo;
     UINT64 hi;
@@ -564,6 +565,9 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
         first integer argument.  */
     if (flags & VMS64_FLAG_RET_IN_MEM) {
         reg_args->gpr[gprcount++] = (unsigned long)rvalue;
+    #ifdef __VMS
+        ++slots;
+    #endif
     }
 
     avn = cif->nargs;
@@ -593,10 +597,6 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
             char *a = (char *)avalue[i];
             unsigned int j;
 
-        #ifdef __VMS
-            slots += n;
-        #endif
-
             for (j = 0; j < n; j++, a += 8, size -= 8) {
                 switch (classes[j]) {
                     case X86_64_NO_CLASS:
@@ -623,13 +623,22 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
                                 memcpy (&reg_args->gpr[gprcount], a, size);
                         }
                         gprcount++;
+                    #ifdef __VMS
+                        ++slots;
+                    #endif
                         break;
                     case X86_64_SSE_CLASS:
                     case X86_64_SSEDF_CLASS:
                         memcpy (&reg_args->sse[ssecount++].i64, a, sizeof(UINT64));
+                    #ifdef __VMS
+                        ++slots;
+                    #endif
                         break;
                     case X86_64_SSESF_CLASS:
                         memcpy (&reg_args->sse[ssecount++].i32, a, sizeof(UINT32));
+                    #ifdef __VMS
+                        ++slots;
+                    #endif
                         break;
                     default:
                         abort();

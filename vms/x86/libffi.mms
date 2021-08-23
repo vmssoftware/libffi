@@ -204,8 +204,9 @@ TESTSUITEFILES = -
 
 TESTSUITE : $(TESTSUITEFILES)
     ! @ pipe create/dir balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi.$(OUT_DIR)] | copy SYS$INPUT nl:
-    - delete balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi.$(OUT_DIR)]*.exe;*
+    ! - delete balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi.$(OUT_DIR)]*.exe;*
     copy [.$(OUT_DIR)]*.EXE balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi] /repl
+    copy [.$(OBJ_DIR)]*.OBJ balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi] /repl
     ! ok
 
 [.$(OUT_DIR)]align_mixed.exe : [.$(OBJ_DIR)]align_mixed.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
