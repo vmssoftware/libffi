@@ -527,6 +527,9 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
   char *stack, *argp;
   ffi_type **arg_types;
   int gprcount, ssecount, ngpr, nsse, i, avn, flags;
+#ifdef __VMS
+  unsigned int slots;
+#endif
   struct register_args *reg_args;
 
   /* Can't call 32-bit mode from 64-bit mode.  */
@@ -544,12 +547,16 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
 
   /* Allocate the space for the arguments, plus 4 words of temp space.  */
   stack = alloca(sizeof(struct register_args) + cif->bytes + 4 * 8);
+  memset(stack, 0xee, sizeof(struct register_args) + cif->bytes + 4 * 8);
   reg_args = (struct register_args *)stack;
   argp = stack + sizeof(struct register_args);
 
   reg_args->r10 = (uintptr_t)closure;
 
   gprcount = ssecount = 0;
+#ifdef __VMS
+  slots = 0;
+#endif
 
   /* If the return value is passed in memory, add the pointer as the
      first integer argument.  */
@@ -575,10 +582,17 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
       argp = (void *)FFI_ALIGN(argp, align);
       memcpy(argp, avalue[i], size);
       argp += size;
+    #ifdef __VMS
+      slots += size / FFI_SIZEOF_ARG;
+    #endif
     } else {
       /* The argument is passed entirely in registers.  */
       char *a = (char *)avalue[i];
       unsigned int j;
+
+    #ifdef __VMS
+      slots += n;
+    #endif
 
       for (j = 0; j < n; j++, a += 8, size -= 8) {
         switch (classes[j]) {
@@ -621,9 +635,13 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
     }
   }
   reg_args->rax = ssecount;
+#ifdef __VMS
+    // pass the argument information
+    reg_args->rax |= slots << 8;
+#endif
 
-  ffi_call_openvms64(stack, cif->bytes + sizeof(struct register_args), flags,
-                     rvalue, fn);
+    ffi_call_openvms64(stack, cif->bytes + sizeof(struct register_args), flags,
+                    rvalue, fn);
 }
 
 #ifndef __VMS

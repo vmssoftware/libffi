@@ -52,6 +52,16 @@
 # endif
 #endif
 
+#ifdef __VMS
+	.balign	8
+	.globl	C(ffi_call_openvms64_test)
+	FFI_HIDDEN(C(ffi_call_openvms64_test))
+
+C(ffi_call_openvms64_test):
+// just return %rax
+    ret
+#endif
+
 /* ffi_call_openvms64 (void *args, unsigned long bytes, unsigned flags,
 	            void *raddr, void (*fnaddr)(void));
 
@@ -97,7 +107,11 @@ L(UW1):
 	movq	0x20(%r10), %r8
 	movq	0x28(%r10), %r9
 	movl	0xb0(%r10), %eax
+#ifdef __VMS
+	testb	%al, %al
+#else
 	testl	%eax, %eax
+#endif
 	jnz	L(load_sse)
 L(ret_from_load_sse):
 

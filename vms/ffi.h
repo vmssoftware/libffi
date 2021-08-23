@@ -246,6 +246,10 @@ typedef struct {
 
 /* ---- Definitions for the raw API -------------------------------------- */
 
+#ifdef __VMS
+#  define FFI_SIZEOF_ARG        8
+#endif
+
 #ifndef FFI_SIZEOF_ARG
 # if LONG_MAX == 2147483647
 #  define FFI_SIZEOF_ARG        4
