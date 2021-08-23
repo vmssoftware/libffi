@@ -126,12 +126,6 @@ typedef signed __int64   SINT64;
 # include <inttypes.h>
 typedef uint64_t UINT64;
 typedef int64_t  SINT64;
-#  ifdef __VMS
-typedef struct {
-  UINT64 lo;
-  UINT64 hi;
-} __int128_t;
-#  endif
 # endif
 #else
 typedef unsigned int UINT8  __attribute__((__mode__(__QI__)));

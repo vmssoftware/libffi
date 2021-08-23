@@ -154,10 +154,10 @@ TESTSUITEFILES = -
 [.$(OUT_DIR)]align_stdcall.exe -
 [.$(OUT_DIR)]err_bad_typedef.exe -
 [.$(OUT_DIR)]float_va.exe -
-[.$(OUT_DIR)]float.exe -
+- ! [.$(OUT_DIR)]float.exe - has long double
 [.$(OUT_DIR)]float1.exe -
-[.$(OUT_DIR)]float2.exe -
-[.$(OUT_DIR)]float3.exe -
+- ! [.$(OUT_DIR)]float2.exe - has long double
+- ! [.$(OUT_DIR)]float3.exe - has long double
 [.$(OUT_DIR)]float4.exe -
 [.$(OUT_DIR)]many_double.exe -
 [.$(OUT_DIR)]many_mixed.exe -
@@ -175,7 +175,7 @@ TESTSUITEFILES = -
 [.$(OUT_DIR)]return_fl1.exe -
 [.$(OUT_DIR)]return_fl2.exe -
 [.$(OUT_DIR)]return_fl3.exe -
-[.$(OUT_DIR)]return_ldl.exe -
+- ! [.$(OUT_DIR)]return_ldl.exe - has long double
 [.$(OUT_DIR)]return_ll.exe -
 [.$(OUT_DIR)]return_ll1.exe -
 [.$(OUT_DIR)]return_sc.exe -
