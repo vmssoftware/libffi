@@ -63,7 +63,7 @@ CC_S_QUALIFIERS = -
 /NOLINE
 
 CC_S_INCLUDES = -
-[.vms], -
+[.vms.x86], -
 [], -
 [.src.x86]
 
@@ -93,7 +93,7 @@ CC_FLAGS = $(CC_QUALIFIERS)/DEFINE=($(CC_DEFINES))/INCLUDE_DIRECTORY=($(CC_INCLU
     $(CC) $(CC_S_FLAGS) $(MMS$SOURCE)
 
 .I.ASM
-    python vms/make_asm.py "$(MMS$TARGET_NAME).i"
+    python vms/x86/make_asm.py "$(MMS$TARGET_NAME).i"
 
 .ASM.OBJ
     @ pipe create/dir $(DIR $(MMS$TARGET)) | copy SYS$INPUT nl:
@@ -117,32 +117,32 @@ TARGET : [.$(OUT_DIR)]libffi$shr$(POINTER).exe, TESTSUITE
 
 [.$(OUT_DIR)]libffi$shr$(POINTER).exe : [.$(OUT_DIR)]libffi$shr$(POINTER).olb
     @ pipe create/dir $(DIR $(MMS$TARGET)) | copy SYS$INPUT nl:
-    $(LINK) $(LINK_FLAGS)/SHARE=libffi$build_out:[000000]$(NOTDIR $(MMS$TARGET_NAME)).exe [.$(OUT_DIR)]libffi$shr$(POINTER).olb/lib,[.vms]libffi.opt/opt
+    $(LINK) $(LINK_FLAGS)/SHARE=libffi$build_out:[000000]$(NOTDIR $(MMS$TARGET_NAME)).exe [.$(OUT_DIR)]libffi$shr$(POINTER).olb/lib,[.vms.x86]libffi.opt/opt
 
 LIBRARY_OBJS= -
-[.$(OBJ_DIR)]openvms64.obj -
+[.$(OBJ_DIR)]vms64.obj -
 [.$(OBJ_DIR)]prep_cif.obj -
 [.$(OBJ_DIR)]types.obj -
 - ! [.$(OBJ_DIR)]raw_api.obj -
 - ! [.$(OBJ_DIR)]java_raw_api.obj -
 [.$(OBJ_DIR)]closures.obj -
-[.$(OBJ_DIR)]ffiopenvms64.obj
+[.$(OBJ_DIR)]ffi64.obj
 
 ############################################################################
 # Library
 [.$(OUT_DIR)]libffi$shr$(POINTER).olb : [.$(OUT_DIR)]libffi$shr$(POINTER).olb($(LIBRARY_OBJS))
     continue
 
-[.$(OBJ_DIR)]openvms64.i : [.src.x86]openvms64.s
-[.$(OBJ_DIR)]openvms64.asm : [.$(OBJ_DIR)]openvms64.i
-[.$(OBJ_DIR)]openvms64.obj : [.$(OBJ_DIR)]openvms64.asm
+[.$(OBJ_DIR)]vms64.i : [.vms.x86]vms64.s
+[.$(OBJ_DIR)]vms64.asm : [.$(OBJ_DIR)]vms64.i
+[.$(OBJ_DIR)]vms64.obj : [.$(OBJ_DIR)]vms64.asm
 
 [.$(OBJ_DIR)]prep_cif.obj : [.src]prep_cif.c
 [.$(OBJ_DIR)]types.obj : [.src]types.c
 ! [.$(OBJ_DIR)]raw_api.obj : [.src]raw_api.c
 ! [.$(OBJ_DIR)]java_raw_api.obj : [.src]java_raw_api.c
 [.$(OBJ_DIR)]closures.obj : [.src]closures.c
-[.$(OBJ_DIR)]ffiopenvms64.obj : [.src.x86]ffiopenvms64.c
+[.$(OBJ_DIR)]ffi64.obj : [.vms.x86]ffi64.c
 
 ############################################################################
 CLEAN :
@@ -203,7 +203,9 @@ TESTSUITEFILES = -
 - ! [.$(OUT_DIR)]va_struct3.exe
 
 TESTSUITE : $(TESTSUITEFILES)
-    copy [.$(OUT_DIR)]*.EXE balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev] /repl
+    ! @ pipe create/dir balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi.$(OUT_DIR)] | copy SYS$INPUT nl:
+    - delete balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi.$(OUT_DIR)]*.exe;*
+    copy [.$(OUT_DIR)]*.EXE balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi] /repl
     ! ok
 
 [.$(OUT_DIR)]align_mixed.exe : [.$(OBJ_DIR)]align_mixed.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb

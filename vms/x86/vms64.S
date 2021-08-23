@@ -1,5 +1,5 @@
 /* -----------------------------------------------------------------------
-   openvms64.S - Copyright (c) 2013  The Written Word, Inc.
+   vms64.S - Copyright (c) 2013  The Written Word, Inc.
 	    - Copyright (c) 2008  Red Hat, Inc
 	    - Copyright (c) 2002  Bo Thorsen <bo@suse.de>
 
@@ -52,17 +52,7 @@
 # endif
 #endif
 
-#ifdef __VMS
-	.balign	8
-	.globl	C(ffi_call_openvms64_test)
-	FFI_HIDDEN(C(ffi_call_openvms64_test))
-
-C(ffi_call_openvms64_test):
-// just return %rax
-    ret
-#endif
-
-/* ffi_call_openvms64 (void *args, unsigned long bytes, unsigned flags,
+/* ffi_call_vms64 (void *args, unsigned long bytes, unsigned flags,
 	            void *raddr, void (*fnaddr)(void));
 
    Bit o trickiness here -- ARGS+BYTES is the base of the stack frame
@@ -70,10 +60,10 @@ C(ffi_call_openvms64_test):
    deallocate some of the stack that has been alloca'd.  */
 
 	.balign	8
-	.globl	C(ffi_call_openvms64)
-	FFI_HIDDEN(C(ffi_call_openvms64))
+	.globl	C(ffi_call_vms64)
+	FFI_HIDDEN(C(ffi_call_vms64))
 
-C(ffi_call_openvms64):
+C(ffi_call_vms64):
 L(UW0):
 	_CET_ENDBR
 	movq	(%rsp), %r10		/* Load return address.  */
@@ -134,7 +124,7 @@ L(UW2):
 	/* cfi_restore(%rbp) */
 
 	/* The first byte of the flags contains the FFI_TYPE.  */
-	cmpb	AS$(UNIX64_RET_LAST), %cl
+	cmpb	AS$(VMS64_RET_LAST), %cl
 	movzbl	%cl, %r10d
 	leaq	L(store_table)(%rip), %r11
 	ja	L(sa)
@@ -151,84 +141,84 @@ L(UW2):
 
 	.balign	8
 L(store_table):
-E(L(store_table), UNIX64_RET_VOID)
+E(L(store_table), VMS64_RET_VOID)
 	_CET_ENDBR
 	ret
-E(L(store_table), UNIX64_RET_UINT8)
+E(L(store_table), VMS64_RET_UINT8)
 	_CET_ENDBR
 	movzbl	%al, %eax
 	movq	%rax, (%rdi)
 	ret
-E(L(store_table), UNIX64_RET_UINT16)
+E(L(store_table), VMS64_RET_UINT16)
 	_CET_ENDBR
 	movzwl	%ax, %eax
 	movq	%rax, (%rdi)
 	ret
-E(L(store_table), UNIX64_RET_UINT32)
+E(L(store_table), VMS64_RET_UINT32)
 	_CET_ENDBR
 	movl	%eax, %eax
 	movq	%rax, (%rdi)
 	ret
-E(L(store_table), UNIX64_RET_SINT8)
+E(L(store_table), VMS64_RET_SINT8)
 	_CET_ENDBR
 	movsbq	%al, %rax
 	movq	%rax, (%rdi)
 	ret
-E(L(store_table), UNIX64_RET_SINT16)
+E(L(store_table), VMS64_RET_SINT16)
 	_CET_ENDBR
 	movswq	%ax, %rax
 	movq	%rax, (%rdi)
 	ret
-E(L(store_table), UNIX64_RET_SINT32)
+E(L(store_table), VMS64_RET_SINT32)
 	_CET_ENDBR
 	cltq
 	movq	%rax, (%rdi)
 	ret
-E(L(store_table), UNIX64_RET_INT64)
+E(L(store_table), VMS64_RET_INT64)
 	_CET_ENDBR
 	movq	%rax, (%rdi)
 	ret
-E(L(store_table), UNIX64_RET_XMM32)
+E(L(store_table), VMS64_RET_XMM32)
 	_CET_ENDBR
 	movd	%xmm0, (%rdi)
 	ret
-E(L(store_table), UNIX64_RET_XMM64)
+E(L(store_table), VMS64_RET_XMM64)
 	_CET_ENDBR
 	movq	%xmm0, (%rdi)
 	ret
-E(L(store_table), UNIX64_RET_X87)
+E(L(store_table), VMS64_RET_X87)
 	_CET_ENDBR
 	fstpt	(%rdi)
 	ret
-E(L(store_table), UNIX64_RET_X87_2)
+E(L(store_table), VMS64_RET_X87_2)
 	_CET_ENDBR
 	fstpt	(%rdi)
 	fstpt	16(%rdi)
 	ret
-E(L(store_table), UNIX64_RET_ST_XMM0_RAX)
+E(L(store_table), VMS64_RET_ST_XMM0_RAX)
 	_CET_ENDBR
 	movq	%rax, 8(%rsi)
 	jmp	L(s3)
-E(L(store_table), UNIX64_RET_ST_RAX_XMM0)
+E(L(store_table), VMS64_RET_ST_RAX_XMM0)
 	_CET_ENDBR
 	movq	%xmm0, 8(%rsi)
 	jmp	L(s2)
-E(L(store_table), UNIX64_RET_ST_XMM0_XMM1)
+E(L(store_table), VMS64_RET_ST_XMM0_XMM1)
 	_CET_ENDBR
 	movq	%xmm1, 8(%rsi)
 	jmp	L(s3)
-E(L(store_table), UNIX64_RET_ST_RAX_RDX)
+E(L(store_table), VMS64_RET_ST_RAX_RDX)
 	_CET_ENDBR
 	movq	%rdx, 8(%rsi)
 L(s2):
 	movq	%rax, (%rsi)
-	shrl	AS$(UNIX64_SIZE_SHIFT), %ecx
+	shrl	AS$(VMS64_SIZE_SHIFT), %ecx
 	rep movsb
 	ret
 	.balign 8
 L(s3):
 	movq	%xmm0, (%rsi)
-	shrl	AS$(UNIX64_SIZE_SHIFT), %ecx
+	shrl	AS$(VMS64_SIZE_SHIFT), %ecx
 	rep movsb
 	ret
 
@@ -252,7 +242,7 @@ L(load_sse):
 	jmp	L(ret_from_load_sse)
 
 L(UW4):
-ENDF(C(ffi_call_openvms64))
+ENDF(C(ffi_call_vms64))
 
 /* 6 general registers, 8 vector registers,
    32 bytes of rvalue, 8 bytes of alignment.  */
@@ -265,10 +255,10 @@ ENDF(C(ffi_call_openvms64))
 #define ffi_closure_RED_RVALUE	(ffi_closure_OFS_RVALUE - ffi_closure_FS)
 
 	.balign	2
-	.globl	C(ffi_closure_openvms64_sse)
-	FFI_HIDDEN(C(ffi_closure_openvms64_sse))
+	.globl	C(ffi_closure_vms64_sse)
+	FFI_HIDDEN(C(ffi_closure_vms64_sse))
 
-C(ffi_closure_openvms64_sse):
+C(ffi_closure_vms64_sse):
 L(UW5):
 	_CET_ENDBR
 	subq	AS$(ffi_closure_FS), %rsp
@@ -286,13 +276,13 @@ L(UW6):
 	jmp	L(sse_entry1)
 
 L(UW7):
-ENDF(C(ffi_closure_openvms64_sse))
+ENDF(C(ffi_closure_vms64_sse))
 
 	.balign	2
-	.globl	C(ffi_closure_openvms64)
-	FFI_HIDDEN(C(ffi_closure_openvms64))
+	.globl	C(ffi_closure_vms64)
+	FFI_HIDDEN(C(ffi_closure_vms64))
 
-C(ffi_closure_openvms64):
+C(ffi_closure_vms64):
 L(UW8):
 	_CET_ENDBR
 	subq	AS$(ffi_closure_FS), %rsp
@@ -319,7 +309,7 @@ L(do_closure):
 	leaq	ffi_closure_OFS_RVALUE(%rsp), %rcx	/* Load rvalue */
 	movq	%rsp, %r8				/* Load reg_args */
 	leaq	ffi_closure_FS+8(%rsp), %r9		/* Load argp */
-	call	PLT(C(ffi_closure_openvms64_inner))
+	call	PLT(C(ffi_closure_vms64_inner))
 
 	/* Deallocate stack frame early; return value is now in redzone.  */
 	addq	AS$(ffi_closure_FS), %rsp
@@ -327,7 +317,7 @@ L(UW10):
 	/* cfi_adjust_cfa_offset(-ffi_closure_FS) */
 
 	/* The first byte of the return value contains the FFI_TYPE.  */
-	cmpb	AS$(UNIX64_RET_LAST), %al
+	cmpb	AS$(VMS64_RET_LAST), %al
 	movzbl	%al, %r10d
 	leaq	L(load_table)(%rip), %r11
 	ja	L(la)
@@ -342,67 +332,67 @@ L(UW10):
 
 	.balign	8
 L(load_table):
-E(L(load_table), UNIX64_RET_VOID)
+E(L(load_table), VMS64_RET_VOID)
 	_CET_ENDBR
 	ret
-E(L(load_table), UNIX64_RET_UINT8)
+E(L(load_table), VMS64_RET_UINT8)
 	_CET_ENDBR
 	movzbl	(%rsi), %eax
 	ret
-E(L(load_table), UNIX64_RET_UINT16)
+E(L(load_table), VMS64_RET_UINT16)
 	_CET_ENDBR
 	movzwl	(%rsi), %eax
 	ret
-E(L(load_table), UNIX64_RET_UINT32)
+E(L(load_table), VMS64_RET_UINT32)
 	_CET_ENDBR
 	movl	(%rsi), %eax
 	ret
-E(L(load_table), UNIX64_RET_SINT8)
+E(L(load_table), VMS64_RET_SINT8)
 	_CET_ENDBR
 	movsbl	(%rsi), %eax
 	ret
-E(L(load_table), UNIX64_RET_SINT16)
+E(L(load_table), VMS64_RET_SINT16)
 	_CET_ENDBR
 	movswl	(%rsi), %eax
 	ret
-E(L(load_table), UNIX64_RET_SINT32)
+E(L(load_table), VMS64_RET_SINT32)
 	_CET_ENDBR
 	movl	(%rsi), %eax
 	ret
-E(L(load_table), UNIX64_RET_INT64)
+E(L(load_table), VMS64_RET_INT64)
 	_CET_ENDBR
 	movq	(%rsi), %rax
 	ret
-E(L(load_table), UNIX64_RET_XMM32)
+E(L(load_table), VMS64_RET_XMM32)
 	_CET_ENDBR
 	movd	(%rsi), %xmm0
 	ret
-E(L(load_table), UNIX64_RET_XMM64)
+E(L(load_table), VMS64_RET_XMM64)
 	_CET_ENDBR
 	movq	(%rsi), %xmm0
 	ret
-E(L(load_table), UNIX64_RET_X87)
+E(L(load_table), VMS64_RET_X87)
 	_CET_ENDBR
 	fldt	(%rsi)
 	ret
-E(L(load_table), UNIX64_RET_X87_2)
+E(L(load_table), VMS64_RET_X87_2)
 	_CET_ENDBR
 	fldt	16(%rsi)
 	fldt	(%rsi)
 	ret
-E(L(load_table), UNIX64_RET_ST_XMM0_RAX)
+E(L(load_table), VMS64_RET_ST_XMM0_RAX)
 	_CET_ENDBR
 	movq	8(%rsi), %rax
 	jmp	L(l3)
-E(L(load_table), UNIX64_RET_ST_RAX_XMM0)
+E(L(load_table), VMS64_RET_ST_RAX_XMM0)
 	_CET_ENDBR
 	movq	8(%rsi), %xmm0
 	jmp	L(l2)
-E(L(load_table), UNIX64_RET_ST_XMM0_XMM1)
+E(L(load_table), VMS64_RET_ST_XMM0_XMM1)
 	_CET_ENDBR
 	movq	8(%rsi), %xmm1
 	jmp	L(l3)
-E(L(load_table), UNIX64_RET_ST_RAX_RDX)
+E(L(load_table), VMS64_RET_ST_RAX_RDX)
 	_CET_ENDBR
 	movq	8(%rsi), %rdx
 L(l2):
@@ -416,13 +406,13 @@ L(l3):
 L(la):	call	PLT(C(decc$abort))
 
 L(UW11):
-ENDF(C(ffi_closure_openvms64))
+ENDF(C(ffi_closure_vms64))
 
 	.balign	2
-	.globl	C(ffi_go_closure_openvms64_sse)
-	FFI_HIDDEN(C(ffi_go_closure_openvms64_sse))
+	.globl	C(ffi_go_closure_vms64_sse)
+	FFI_HIDDEN(C(ffi_go_closure_vms64_sse))
 
-C(ffi_go_closure_openvms64_sse):
+C(ffi_go_closure_vms64_sse):
 L(UW12):
 	_CET_ENDBR
 	subq	AS$(ffi_closure_FS), %rsp
@@ -440,13 +430,13 @@ L(UW13):
 	jmp	L(sse_entry2)
 
 L(UW14):
-ENDF(C(ffi_go_closure_openvms64_sse))
+ENDF(C(ffi_go_closure_vms64_sse))
 
 	.balign	2
-	.globl	C(ffi_go_closure_openvms64)
-	FFI_HIDDEN(C(ffi_go_closure_openvms64))
+	.globl	C(ffi_go_closure_vms64)
+	FFI_HIDDEN(C(ffi_go_closure_vms64))
 
-C(ffi_go_closure_openvms64):
+C(ffi_go_closure_vms64):
 L(UW15):
 	_CET_ENDBR
 	subq	AS$(ffi_closure_FS), %rsp
@@ -472,7 +462,7 @@ L(sse_entry2):
 	jmp	L(do_closure)
 
 L(UW17):
-ENDF(C(ffi_go_closure_openvms64))
+ENDF(C(ffi_go_closure_vms64))
 
 /* Sadly, OSX cctools-as doesn't understand .cfi directives at all.  */
 
@@ -592,40 +582,40 @@ L(EFDE5):
 	.subsections_via_symbols
 	.section __LD,__compact_unwind,regular,debug
 
-	/* compact unwind for ffi_call_openvms64 */
-	.quad    C(ffi_call_openvms64)
+	/* compact unwind for ffi_call_vms64 */
+	.quad    C(ffi_call_vms64)
 	.set     L1,L(UW4)-L(UW0)
 	.long    L1
 	.long    0x04000000 /* use dwarf unwind info */
 	.quad    0
 	.quad    0
 
-	/* compact unwind for ffi_closure_openvms64_sse */
-	.quad    C(ffi_closure_openvms64_sse)
+	/* compact unwind for ffi_closure_vms64_sse */
+	.quad    C(ffi_closure_vms64_sse)
 	.set     L2,L(UW7)-L(UW5)
 	.long    L2
 	.long    0x04000000 /* use dwarf unwind info */
 	.quad    0
 	.quad    0
 
-	/* compact unwind for ffi_closure_openvms64 */
-	.quad    C(ffi_closure_openvms64)
+	/* compact unwind for ffi_closure_vms64 */
+	.quad    C(ffi_closure_vms64)
 	.set     L3,L(UW11)-L(UW8)
 	.long    L3
 	.long    0x04000000 /* use dwarf unwind info */
 	.quad    0
 	.quad    0
 
-	/* compact unwind for ffi_go_closure_openvms64_sse */
-	.quad    C(ffi_go_closure_openvms64_sse)
+	/* compact unwind for ffi_go_closure_vms64_sse */
+	.quad    C(ffi_go_closure_vms64_sse)
 	.set     L4,L(UW14)-L(UW12)
 	.long    L4
 	.long    0x04000000 /* use dwarf unwind info */
 	.quad    0
 	.quad    0
 
-	/* compact unwind for ffi_go_closure_openvms64 */
-	.quad    C(ffi_go_closure_openvms64)
+	/* compact unwind for ffi_go_closure_vms64 */
+	.quad    C(ffi_go_closure_vms64)
 	.set     L5,L(UW17)-L(UW15)
 	.long    L5
 	.long    0x04000000 /* use dwarf unwind info */

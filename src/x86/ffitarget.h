@@ -111,9 +111,9 @@ typedef enum ffi_abi {
   FFI_DEFAULT_ABI = FFI_MS_CDECL
 #elif defined(X86_64_VMS)
   FFI_FIRST_ABI = 0,
-  FFI_OPENVMS64 = 1,
+  FFI_VMS64 = 1,
   FFI_LAST_ABI,
-  FFI_DEFAULT_ABI = FFI_OPENVMS64
+  FFI_DEFAULT_ABI = FFI_VMS64
 #else
   FFI_FIRST_ABI = 0,
   FFI_SYSV      = 1,
