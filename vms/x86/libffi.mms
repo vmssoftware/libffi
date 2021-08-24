@@ -123,9 +123,6 @@ LIBRARY_OBJS= -
 [.$(OBJ_DIR)]vms64.obj -
 [.$(OBJ_DIR)]prep_cif.obj -
 [.$(OBJ_DIR)]types.obj -
-- ! [.$(OBJ_DIR)]raw_api.obj -
-- ! [.$(OBJ_DIR)]java_raw_api.obj -
-[.$(OBJ_DIR)]closures.obj -
 [.$(OBJ_DIR)]ffi64.obj
 
 ############################################################################
@@ -139,9 +136,6 @@ LIBRARY_OBJS= -
 
 [.$(OBJ_DIR)]prep_cif.obj : [.src]prep_cif.c
 [.$(OBJ_DIR)]types.obj : [.src]types.c
-! [.$(OBJ_DIR)]raw_api.obj : [.src]raw_api.c
-! [.$(OBJ_DIR)]java_raw_api.obj : [.src]java_raw_api.c
-[.$(OBJ_DIR)]closures.obj : [.src]closures.c
 [.$(OBJ_DIR)]ffi64.obj : [.vms.x86]ffi64.c
 
 ############################################################################
@@ -149,15 +143,15 @@ CLEAN :
     del/tree [.$(OUT_DIR)...]*.*;*
 
 ############################################################################
-TESTSUITEFILES = -
+TESTCALL_FILES = -
 [.$(OUT_DIR)]align_mixed.exe -
 [.$(OUT_DIR)]align_stdcall.exe -
 [.$(OUT_DIR)]err_bad_typedef.exe -
 [.$(OUT_DIR)]float_va.exe -
-- ! [.$(OUT_DIR)]float.exe - has long double
+[.$(OUT_DIR)]float.exe -
 [.$(OUT_DIR)]float1.exe -
-- ! [.$(OUT_DIR)]float2.exe - has long double
-- ! [.$(OUT_DIR)]float3.exe - has long double
+[.$(OUT_DIR)]float2.exe -
+[.$(OUT_DIR)]float3.exe -
 [.$(OUT_DIR)]float4.exe -
 [.$(OUT_DIR)]many_double.exe -
 [.$(OUT_DIR)]many_mixed.exe -
@@ -175,7 +169,7 @@ TESTSUITEFILES = -
 [.$(OUT_DIR)]return_fl1.exe -
 [.$(OUT_DIR)]return_fl2.exe -
 [.$(OUT_DIR)]return_fl3.exe -
-- ! [.$(OUT_DIR)]return_ldl.exe - has long double
+[.$(OUT_DIR)]return_ldl.exe -
 [.$(OUT_DIR)]return_ll.exe -
 [.$(OUT_DIR)]return_ll1.exe -
 [.$(OUT_DIR)]return_sc.exe -
@@ -196,15 +190,19 @@ TESTSUITEFILES = -
 [.$(OUT_DIR)]struct8.exe -
 [.$(OUT_DIR)]struct9.exe -
 [.$(OUT_DIR)]struct10.exe -
-[.$(OUT_DIR)]uninitialized.exe -
-- ! [.$(OUT_DIR)]va_1.exe -
-- ! [.$(OUT_DIR)]va_struct1.exe -
-- ! [.$(OUT_DIR)]va_struct2.exe -
-- ! [.$(OUT_DIR)]va_struct3.exe
+[.$(OUT_DIR)]uninitialized.exe
+! next files cause compiler error
+! [.$(OUT_DIR)]va_1.exe 
+! [.$(OUT_DIR)]va_struct1.exe
+! [.$(OUT_DIR)]va_struct2.exe
+! [.$(OUT_DIR)]va_struct3.exe
+
+
+TESTSUITE_FILES = -
+$(TESTCALL_FILES)
 
 TESTSUITE : $(TESTSUITEFILES)
-    ! @ pipe create/dir balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi.$(OUT_DIR)] | copy SYS$INPUT nl:
-    ! - delete balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi.$(OUT_DIR)]*.exe;*
+    purge [...]
     copy [.$(OUT_DIR)]*.EXE balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi] /repl
     copy [.$(OBJ_DIR)]*.OBJ balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi] /repl
     ! ok
@@ -308,8 +306,8 @@ TESTSUITE : $(TESTSUITEFILES)
 [.$(OBJ_DIR)]struct9.obj : [.testsuite.libffi^.call]struct9.c
 [.$(OBJ_DIR)]struct10.obj : [.testsuite.libffi^.call]struct10.c
 [.$(OBJ_DIR)]uninitialized.obj : [.testsuite.libffi^.call]uninitialized.c
+
 [.$(OBJ_DIR)]va_1.obj : [.testsuite.libffi^.call]va_1.c
 [.$(OBJ_DIR)]va_struct1.obj : [.testsuite.libffi^.call]va_struct1.c
 [.$(OBJ_DIR)]va_struct2.obj : [.testsuite.libffi^.call]va_struct2.c
 [.$(OBJ_DIR)]va_struct3.obj : [.testsuite.libffi^.call]va_struct3.c
-
