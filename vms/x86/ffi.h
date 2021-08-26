@@ -321,6 +321,10 @@ size_t ffi_java_raw_size (ffi_cif *cif) __attribute__((deprecated));
 #ifdef _MSC_VER
 __declspec(align(8))
 #endif
+#ifdef __VMS
+#pragma member_alignment save
+#pragma nomember_alignment
+#endif
 typedef struct {
 #if FFI_EXEC_TRAMPOLINE_TABLE
   void *trampoline_table;
@@ -329,13 +333,22 @@ typedef struct {
   char tramp[FFI_TRAMPOLINE_SIZE];
 #endif
   ffi_cif   *cif;
+#if defined(__VMS) && (!defined(__INITIAL_POINTER_SIZE) || __INITIAL_POINTER_SIZE == 32)
+  void  *_align_after_cif;
+#endif
   void     (*fun)(ffi_cif*,void*,void**,void*);
+#if defined(__VMS) && (!defined(__INITIAL_POINTER_SIZE) || __INITIAL_POINTER_SIZE == 32)
+  void  *_align_after_fun;
+#endif
   void      *user_data;
 } ffi_closure
 #ifdef __GNUC__
     __attribute__((aligned (8)))
 #endif
     ;
+#ifdef __VMS
+#pragma member_alignment restore
+#endif
 
 #ifndef __GNUC__
 # ifdef __sgi

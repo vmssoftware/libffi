@@ -548,7 +548,6 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
     if (rvalue == NULL) {
         if (flags & VMS64_FLAG_RET_IN_MEM) {
             rvalue = alloca(cif->rtype->size);
-            // printf("alloca-ted for return %i\n", cif->rtype->size);
         } else {
             flags = VMS64_RET_VOID;
         }
@@ -556,7 +555,6 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
 
     /* Allocate the space for the arguments, plus 4 words of temp space.  */
     stack = alloca(sizeof(struct register_args) + cif->bytes + 4 * 8);
-    // printf("alloca-ted stack %i\n", sizeof(struct register_args) + cif->bytes + 4 * 8);
     reg_args = (struct register_args *)stack;
     argp = stack + sizeof(struct register_args);
 
@@ -568,7 +566,6 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
         first integer argument.  */
     if (flags & VMS64_FLAG_RET_IN_MEM) {
         reg_args->gpr[gprcount++] = (unsigned long)rvalue;
-        // printf("ret in gpr[%i]\n", gprcount-1);
     #ifdef __VMS
         ++slots;
     #endif
@@ -581,7 +578,6 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
         size_t n, size = arg_types[i]->size;
 
         n = examine_argument(arg_types[i], classes, 0, &ngpr, &nsse);
-        // printf("arg[%i] has %i slots\n", i, n);
         if (n == 0 || gprcount + ngpr > MAX_GPR_REGS ||
             ssecount + nsse > MAX_SSE_REGS) {
             long align = arg_types[i]->alignment;
@@ -593,11 +589,9 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
             /* Pass this argument in memory.  */
             argp = (void *)FFI_ALIGN(argp, align);
             memcpy(argp, avalue[i], size);
-            // printf("arg[%i] copied to stack %i bytes\n", i, size);
             argp += size;
         #ifdef __VMS
             slots += size / FFI_SIZEOF_ARG;
-            // printf("arg[%i] adds %i slots\n", i, size / FFI_SIZEOF_ARG);
         #endif
         } else {
             /* The argument is passed entirely in registers.  */
@@ -630,7 +624,6 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
                                 memcpy (&reg_args->gpr[gprcount], a, size);
                         }
                         gprcount++;
-                        // printf("arg[%i] slot %i in gpr[%i]\n", i, j, gprcount-1);
                     #ifdef __VMS
                         ++slots;
                     #endif
@@ -638,14 +631,12 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
                     case X86_64_SSE_CLASS:
                     case X86_64_SSEDF_CLASS:
                         memcpy (&reg_args->sse[ssecount++].i64, a, sizeof(UINT64));
-                        // printf("arg[%i] slot %i in sse64[%i]\n", i, j, ssecount-1);
                     #ifdef __VMS
                         ++slots;
                     #endif
                         break;
                     case X86_64_SSESF_CLASS:
                         memcpy (&reg_args->sse[ssecount++].i32, a, sizeof(UINT32));
-                        // printf("arg[%i] slot %i in sse32[%i]\n", i, j, ssecount-1);
                     #ifdef __VMS
                         ++slots;
                     #endif
@@ -661,36 +652,6 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
     // pass the argument information
     reg_args->rax |= slots << 8;
     #endif
-
-    // printf("regs");
-    // for(int igpr = 0; igpr < MAX_GPR_REGS; ++igpr) {
-    //     if (igpr % 4 == 0) {
-    //         printf("\n");
-    //     }
-    //     printf("%0llx ", reg_args->gpr[igpr]);
-    // }
-    // printf("\n");
-    // for(int isse = 0; isse < MAX_SSE_REGS; ++isse) {
-    //     if (isse % 4 == 0) {
-    //         printf("\n");
-    //     }
-    //     printf("%0llx ", reg_args->sse[isse]);
-    // }
-    // printf("\n");
-    // printf("rax %0llx\n", reg_args->rax);
-    // printf("r10 %0llx\n", reg_args->r10);
-
-    // printf("flags %0llx\n", flags);
-
-    // printf("size %i\n", cif->bytes + sizeof(struct register_args));
-    // printf("stack");
-    // for(int ib = 0; ib < cif->bytes + sizeof(struct register_args); ++ib) {
-    //     if (ib % 16 == 0) {
-    //         printf("\n");
-    //     }
-    //     printf("%02x ", (unsigned char)stack[ib]);
-    // }
-    // printf("\n");
 
     ffi_call_vms64(stack, cif->bytes + sizeof(struct register_args), flags,
                     rvalue, fn);
@@ -732,7 +693,11 @@ ffi_status ffi_prep_closure_loc(ffi_closure *closure, ffi_cif *cif,
     dest = ffi_closure_vms64;
 
   memcpy(tramp, trampoline, sizeof(trampoline));
+#if defined(__VMS) && (!defined(__INITIAL_POINTER_SIZE) || __INITIAL_POINTER_SIZE == 32)
+  *(UINT64 *)(tramp + sizeof(trampoline)) = (UINT32)(uintptr_t)dest;
+#else
   *(UINT64 *)(tramp + sizeof(trampoline)) = (uintptr_t)dest;
+#endif
 
   closure->cif = cif;
   closure->fun = fun;

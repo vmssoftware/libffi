@@ -970,6 +970,33 @@ ffi_closure_free (void *ptr)
   dlfree (FFI_RESTORE_PTR (ptr));
 }
 
+# elif defined (X86_64_VMS)
+
+extern void* LIB$X86_ALLOC_BPV(int64_t bytes);
+extern void LIB$X86_FREE_BPV(void *);
+
+void *
+ffi_closure_alloc (size_t size, void **code)
+{
+  if (!code)
+    return NULL;
+
+  return *code = LIB$X86_ALLOC_BPV (size);
+}
+
+void
+ffi_closure_free (void *ptr)
+{
+  LIB$X86_FREE_BPV (ptr);
+}
+
+void *
+ffi_data_to_code_pointer (void *data)
+{
+  return data;
+}
+
+
 # else /* ! FFI_MMAP_EXEC_WRIT */
 
 /* On many systems, memory returned by malloc is writable and

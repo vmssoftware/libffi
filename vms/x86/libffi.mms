@@ -109,7 +109,7 @@ CC_FLAGS = $(CC_QUALIFIERS)/DEFINE=($(CC_DEFINES))/INCLUDE_DIRECTORY=($(CC_INCLU
     $(LIBR) $(MMS$TARGET) $(MMS$SOURCE)
 
 .OBJ.EXE
-    $(LINK) $(LINK_FLAGS) /EXE=libffi$build_out:[000000]$(NOTDIR $(MMS$TARGET_NAME)).exe $(MMS$SOURCE),[.$(OUT_DIR)]libffi$shr$(POINTER).olb/lib
+    $(LINK) $(LINK_FLAGS) /EXE=libffi$build_out:[000000]$(NOTDIR $(MMS$TARGET_NAME)).exe $(MMS$SOURCE), [.$(OUT_DIR)]libffi$shr$(POINTER).olb/lib,[.vms.x86]common.opt/opt
 
 ##########################################################################
 TARGET : [.$(OUT_DIR)]libffi$shr$(POINTER).exe, TESTSUITE
@@ -119,10 +119,17 @@ TARGET : [.$(OUT_DIR)]libffi$shr$(POINTER).exe, TESTSUITE
     @ pipe create/dir $(DIR $(MMS$TARGET)) | copy SYS$INPUT nl:
     $(LINK) $(LINK_FLAGS)/SHARE=libffi$build_out:[000000]$(NOTDIR $(MMS$TARGET_NAME)).exe [.$(OUT_DIR)]libffi$shr$(POINTER).olb/lib,[.vms.x86]libffi.opt/opt
 
-LIBRARY_OBJS= -
+HEADERS = -
+[.vms.x86]ffi.h -
+[.vms.x86]fficonfig.h -
+[.vms.x86]internal64.h -
+[.src.x86]ffitarget.h
+
+LIBRARY_OBJS = -
 [.$(OBJ_DIR)]vms64.obj -
 [.$(OBJ_DIR)]prep_cif.obj -
 [.$(OBJ_DIR)]types.obj -
+[.$(OBJ_DIR)]closures.obj -
 [.$(OBJ_DIR)]ffi64.obj
 
 ############################################################################
@@ -130,13 +137,14 @@ LIBRARY_OBJS= -
 [.$(OUT_DIR)]libffi$shr$(POINTER).olb : [.$(OUT_DIR)]libffi$shr$(POINTER).olb($(LIBRARY_OBJS))
     continue
 
-[.$(OBJ_DIR)]vms64.i : [.vms.x86]vms64.s
+[.$(OBJ_DIR)]vms64.i : [.vms.x86]vms64.s $(HEADERS)
 [.$(OBJ_DIR)]vms64.asm : [.$(OBJ_DIR)]vms64.i
 [.$(OBJ_DIR)]vms64.obj : [.$(OBJ_DIR)]vms64.asm
 
-[.$(OBJ_DIR)]prep_cif.obj : [.src]prep_cif.c
-[.$(OBJ_DIR)]types.obj : [.src]types.c
-[.$(OBJ_DIR)]ffi64.obj : [.vms.x86]ffi64.c
+[.$(OBJ_DIR)]prep_cif.obj : [.src]prep_cif.c $(HEADERS)
+[.$(OBJ_DIR)]types.obj : [.src]types.c $(HEADERS)
+[.$(OBJ_DIR)]closures.obj : [.src]closures.c $(HEADERS)
+[.$(OBJ_DIR)]ffi64.obj : [.vms.x86]ffi64.c $(HEADERS)
 
 ############################################################################
 CLEAN :
@@ -197,11 +205,10 @@ TESTCALL_FILES = -
 ! [.$(OUT_DIR)]va_struct2.exe
 ! [.$(OUT_DIR)]va_struct3.exe
 
+TESTCLOSURE_FILES = -
+[.$(OUT_DIR)]closure_simple.exe
 
-TESTSUITE_FILES = -
-$(TESTCALL_FILES)
-
-TESTSUITE : $(TESTSUITEFILES)
+TESTSUITE : $(TESTCALL_FILES) $(TESTCLOSURE_FILES)
     purge [...]
     copy [.$(OUT_DIR)]*.EXE balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi] /repl
     copy [.$(OBJ_DIR)]*.OBJ balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi] /repl
@@ -259,55 +266,58 @@ TESTSUITE : $(TESTSUITEFILES)
 [.$(OUT_DIR)]va_struct2.exe : [.$(OBJ_DIR)]va_struct2.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
 [.$(OUT_DIR)]va_struct3.exe : [.$(OBJ_DIR)]va_struct3.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
 
-[.$(OBJ_DIR)]align_mixed.obj : [.testsuite.libffi^.call]align_mixed.c
-[.$(OBJ_DIR)]align_stdcall.obj : [.testsuite.libffi^.call]align_stdcall.c
-[.$(OBJ_DIR)]err_bad_typedef.obj : [.testsuite.libffi^.call]err_bad_typedef.c
-[.$(OBJ_DIR)]float_va.obj : [.testsuite.libffi^.call]float_va.c
-[.$(OBJ_DIR)]float.obj : [.testsuite.libffi^.call]float.c
-[.$(OBJ_DIR)]float1.obj : [.testsuite.libffi^.call]float1.c
-[.$(OBJ_DIR)]float2.obj : [.testsuite.libffi^.call]float2.c
-[.$(OBJ_DIR)]float3.obj : [.testsuite.libffi^.call]float3.c
-[.$(OBJ_DIR)]float4.obj : [.testsuite.libffi^.call]float4.c
-[.$(OBJ_DIR)]many_double.obj : [.testsuite.libffi^.call]many_double.c
-[.$(OBJ_DIR)]many_mixed.obj : [.testsuite.libffi^.call]many_mixed.c
-[.$(OBJ_DIR)]many.obj : [.testsuite.libffi^.call]many.c
-[.$(OBJ_DIR)]many2.obj : [.testsuite.libffi^.call]many2.c
-[.$(OBJ_DIR)]negint.obj : [.testsuite.libffi^.call]negint.c
-[.$(OBJ_DIR)]offsets.obj : [.testsuite.libffi^.call]offsets.c
-[.$(OBJ_DIR)]pr1172638.obj : [.testsuite.libffi^.call]pr1172638.c
-[.$(OBJ_DIR)]promotion.obj : [.testsuite.libffi^.call]promotion.c
-[.$(OBJ_DIR)]pyobjc-tc.obj : [.testsuite.libffi^.call]pyobjc-tc.c
-[.$(OBJ_DIR)]return_dbl.obj : [.testsuite.libffi^.call]return_dbl.c
-[.$(OBJ_DIR)]return_dbl1.obj : [.testsuite.libffi^.call]return_dbl1.c
-[.$(OBJ_DIR)]return_dbl2.obj : [.testsuite.libffi^.call]return_dbl2.c
-[.$(OBJ_DIR)]return_fl.obj : [.testsuite.libffi^.call]return_fl.c
-[.$(OBJ_DIR)]return_fl1.obj : [.testsuite.libffi^.call]return_fl1.c
-[.$(OBJ_DIR)]return_fl2.obj : [.testsuite.libffi^.call]return_fl2.c
-[.$(OBJ_DIR)]return_fl3.obj : [.testsuite.libffi^.call]return_fl3.c
-[.$(OBJ_DIR)]return_ldl.obj : [.testsuite.libffi^.call]return_ldl.c
-[.$(OBJ_DIR)]return_ll.obj : [.testsuite.libffi^.call]return_ll.c
-[.$(OBJ_DIR)]return_ll1.obj : [.testsuite.libffi^.call]return_ll1.c
-[.$(OBJ_DIR)]return_sc.obj : [.testsuite.libffi^.call]return_sc.c
-[.$(OBJ_DIR)]return_sl.obj : [.testsuite.libffi^.call]return_sl.c
-[.$(OBJ_DIR)]return_uc.obj : [.testsuite.libffi^.call]return_uc.c
-[.$(OBJ_DIR)]return_ul.obj : [.testsuite.libffi^.call]return_ul.c
-[.$(OBJ_DIR)]strlen.obj : [.testsuite.libffi^.call]strlen.c
-[.$(OBJ_DIR)]strlen2.obj : [.testsuite.libffi^.call]strlen2.c
-[.$(OBJ_DIR)]strlen3.obj : [.testsuite.libffi^.call]strlen3.c
-[.$(OBJ_DIR)]strlen4.obj : [.testsuite.libffi^.call]strlen4.c
-[.$(OBJ_DIR)]struct1.obj : [.testsuite.libffi^.call]struct1.c
-[.$(OBJ_DIR)]struct2.obj : [.testsuite.libffi^.call]struct2.c
-[.$(OBJ_DIR)]struct3.obj : [.testsuite.libffi^.call]struct3.c
-[.$(OBJ_DIR)]struct4.obj : [.testsuite.libffi^.call]struct4.c
-[.$(OBJ_DIR)]struct5.obj : [.testsuite.libffi^.call]struct5.c
-[.$(OBJ_DIR)]struct6.obj : [.testsuite.libffi^.call]struct6.c
-[.$(OBJ_DIR)]struct7.obj : [.testsuite.libffi^.call]struct7.c
-[.$(OBJ_DIR)]struct8.obj : [.testsuite.libffi^.call]struct8.c
-[.$(OBJ_DIR)]struct9.obj : [.testsuite.libffi^.call]struct9.c
-[.$(OBJ_DIR)]struct10.obj : [.testsuite.libffi^.call]struct10.c
-[.$(OBJ_DIR)]uninitialized.obj : [.testsuite.libffi^.call]uninitialized.c
+[.$(OBJ_DIR)]align_mixed.obj : [.testsuite.libffi^.call]align_mixed.c $(HEADERS)
+[.$(OBJ_DIR)]align_stdcall.obj : [.testsuite.libffi^.call]align_stdcall.c $(HEADERS)
+[.$(OBJ_DIR)]err_bad_typedef.obj : [.testsuite.libffi^.call]err_bad_typedef.c $(HEADERS)
+[.$(OBJ_DIR)]float_va.obj : [.testsuite.libffi^.call]float_va.c $(HEADERS)
+[.$(OBJ_DIR)]float.obj : [.testsuite.libffi^.call]float.c $(HEADERS)
+[.$(OBJ_DIR)]float1.obj : [.testsuite.libffi^.call]float1.c $(HEADERS)
+[.$(OBJ_DIR)]float2.obj : [.testsuite.libffi^.call]float2.c $(HEADERS)
+[.$(OBJ_DIR)]float3.obj : [.testsuite.libffi^.call]float3.c $(HEADERS)
+[.$(OBJ_DIR)]float4.obj : [.testsuite.libffi^.call]float4.c $(HEADERS)
+[.$(OBJ_DIR)]many_double.obj : [.testsuite.libffi^.call]many_double.c $(HEADERS)
+[.$(OBJ_DIR)]many_mixed.obj : [.testsuite.libffi^.call]many_mixed.c $(HEADERS)
+[.$(OBJ_DIR)]many.obj : [.testsuite.libffi^.call]many.c $(HEADERS)
+[.$(OBJ_DIR)]many2.obj : [.testsuite.libffi^.call]many2.c $(HEADERS)
+[.$(OBJ_DIR)]negint.obj : [.testsuite.libffi^.call]negint.c $(HEADERS)
+[.$(OBJ_DIR)]offsets.obj : [.testsuite.libffi^.call]offsets.c $(HEADERS)
+[.$(OBJ_DIR)]pr1172638.obj : [.testsuite.libffi^.call]pr1172638.c $(HEADERS)
+[.$(OBJ_DIR)]promotion.obj : [.testsuite.libffi^.call]promotion.c $(HEADERS)
+[.$(OBJ_DIR)]pyobjc-tc.obj : [.testsuite.libffi^.call]pyobjc-tc.c $(HEADERS)
+[.$(OBJ_DIR)]return_dbl.obj : [.testsuite.libffi^.call]return_dbl.c $(HEADERS)
+[.$(OBJ_DIR)]return_dbl1.obj : [.testsuite.libffi^.call]return_dbl1.c $(HEADERS)
+[.$(OBJ_DIR)]return_dbl2.obj : [.testsuite.libffi^.call]return_dbl2.c $(HEADERS)
+[.$(OBJ_DIR)]return_fl.obj : [.testsuite.libffi^.call]return_fl.c $(HEADERS)
+[.$(OBJ_DIR)]return_fl1.obj : [.testsuite.libffi^.call]return_fl1.c $(HEADERS)
+[.$(OBJ_DIR)]return_fl2.obj : [.testsuite.libffi^.call]return_fl2.c $(HEADERS)
+[.$(OBJ_DIR)]return_fl3.obj : [.testsuite.libffi^.call]return_fl3.c $(HEADERS)
+[.$(OBJ_DIR)]return_ldl.obj : [.testsuite.libffi^.call]return_ldl.c $(HEADERS)
+[.$(OBJ_DIR)]return_ll.obj : [.testsuite.libffi^.call]return_ll.c $(HEADERS)
+[.$(OBJ_DIR)]return_ll1.obj : [.testsuite.libffi^.call]return_ll1.c $(HEADERS)
+[.$(OBJ_DIR)]return_sc.obj : [.testsuite.libffi^.call]return_sc.c $(HEADERS)
+[.$(OBJ_DIR)]return_sl.obj : [.testsuite.libffi^.call]return_sl.c $(HEADERS)
+[.$(OBJ_DIR)]return_uc.obj : [.testsuite.libffi^.call]return_uc.c $(HEADERS)
+[.$(OBJ_DIR)]return_ul.obj : [.testsuite.libffi^.call]return_ul.c $(HEADERS)
+[.$(OBJ_DIR)]strlen.obj : [.testsuite.libffi^.call]strlen.c $(HEADERS)
+[.$(OBJ_DIR)]strlen2.obj : [.testsuite.libffi^.call]strlen2.c $(HEADERS)
+[.$(OBJ_DIR)]strlen3.obj : [.testsuite.libffi^.call]strlen3.c $(HEADERS)
+[.$(OBJ_DIR)]strlen4.obj : [.testsuite.libffi^.call]strlen4.c $(HEADERS)
+[.$(OBJ_DIR)]struct1.obj : [.testsuite.libffi^.call]struct1.c $(HEADERS)
+[.$(OBJ_DIR)]struct2.obj : [.testsuite.libffi^.call]struct2.c $(HEADERS)
+[.$(OBJ_DIR)]struct3.obj : [.testsuite.libffi^.call]struct3.c $(HEADERS)
+[.$(OBJ_DIR)]struct4.obj : [.testsuite.libffi^.call]struct4.c $(HEADERS)
+[.$(OBJ_DIR)]struct5.obj : [.testsuite.libffi^.call]struct5.c $(HEADERS)
+[.$(OBJ_DIR)]struct6.obj : [.testsuite.libffi^.call]struct6.c $(HEADERS)
+[.$(OBJ_DIR)]struct7.obj : [.testsuite.libffi^.call]struct7.c $(HEADERS)
+[.$(OBJ_DIR)]struct8.obj : [.testsuite.libffi^.call]struct8.c $(HEADERS)
+[.$(OBJ_DIR)]struct9.obj : [.testsuite.libffi^.call]struct9.c $(HEADERS)
+[.$(OBJ_DIR)]struct10.obj : [.testsuite.libffi^.call]struct10.c $(HEADERS)
+[.$(OBJ_DIR)]uninitialized.obj : [.testsuite.libffi^.call]uninitialized.c $(HEADERS)
 
-[.$(OBJ_DIR)]va_1.obj : [.testsuite.libffi^.call]va_1.c
-[.$(OBJ_DIR)]va_struct1.obj : [.testsuite.libffi^.call]va_struct1.c
-[.$(OBJ_DIR)]va_struct2.obj : [.testsuite.libffi^.call]va_struct2.c
-[.$(OBJ_DIR)]va_struct3.obj : [.testsuite.libffi^.call]va_struct3.c
+[.$(OBJ_DIR)]va_1.obj : [.testsuite.libffi^.call]va_1.c $(HEADERS)
+[.$(OBJ_DIR)]va_struct1.obj : [.testsuite.libffi^.call]va_struct1.c $(HEADERS)
+[.$(OBJ_DIR)]va_struct2.obj : [.testsuite.libffi^.call]va_struct2.c $(HEADERS)
+[.$(OBJ_DIR)]va_struct3.obj : [.testsuite.libffi^.call]va_struct3.c $(HEADERS)
+
+[.$(OUT_DIR)]closure_simple.exe : [.$(OBJ_DIR)]closure_simple.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
+[.$(OBJ_DIR)]closure_simple.obj : [.testsuite.libffi^.closures]closure_simple.c $(HEADERS)

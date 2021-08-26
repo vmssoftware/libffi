@@ -309,6 +309,9 @@ L(do_closure):
 	leaq	ffi_closure_OFS_RVALUE(%rsp), %rcx	/* Load rvalue */
 	movq	%rsp, %r8				/* Load reg_args */
 	leaq	ffi_closure_FS+8(%rsp), %r9		/* Load argp */
+#ifdef __VMS
+    movl    $00000600,%eax      /* six arguments */
+#endif
 	call	PLT(C(ffi_closure_vms64_inner))
 
 	/* Deallocate stack frame early; return value is now in redzone.  */
