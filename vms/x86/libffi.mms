@@ -2,6 +2,9 @@
 
 POINTER_SIZE = 
 
+X86HOST = HERMOD
+X86DISK = $171$DKA300
+
 .IF POINTER .EQ 32
 POINTER_SIZE = /POINTER_SIZE=32
 .ELSIF POINTER .EQ 64
@@ -339,9 +342,9 @@ TESTBH_FILES = -
 
 TESTSUITE : $(TESTCALL_FILES) $(TESTCLOSURE_FILES) $(TESTCOMPLEX_FILES) $(TESTBH_FILES)
     purge [...]
-    copy [.VMS.X86]RUN_TESTS.COM balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi] /repl
-    copy [.$(OUT_DIR)]*.EXE balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi] /repl
-    ! copy [.$(OBJ_DIR)]*.OBJ balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi] /repl
+    copy [.VMS.X86]RUN_TESTS.COM $(X86HOST)"vorfolomeev AAwf12jg%3kW"::$(X86DISK):[vorfolomeev.libffi] /repl
+    copy [.$(OUT_DIR)]*.EXE $(X86HOST)"vorfolomeev AAwf12jg%3kW"::$(X86DISK):[vorfolomeev.libffi] /repl
+    ! copy [.$(OBJ_DIR)]*.OBJ $(X86HOST)"vorfolomeev AAwf12jg%3kW"::$(X86DISK):[vorfolomeev.libffi] /repl
     ! ok
 
 [.$(OUT_DIR)]align_mixed.exe : [.$(OBJ_DIR)]align_mixed.obj, $(LIBFFI_LIB)
