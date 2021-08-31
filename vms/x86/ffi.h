@@ -114,7 +114,11 @@ extern "C" {
 
 typedef struct _ffi_type
 {
+#ifdef __VMS
+  long long size;
+#else
   size_t size;
+#endif
   unsigned short alignment;
   unsigned short type;
   struct _ffi_type **elements;

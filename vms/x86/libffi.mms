@@ -1,17 +1,17 @@
 ! MMS/EXT/DESCR=libffi_x86.mms/MACRO=("OUTDIR=OUT","CONFIG=DEBUG","POINTER=32")
 
-! define pointer size
-.IF POINTER
-! defined - ok
-.ELSE
-! not defined - define as 32
-POINTER = 32
+POINTER_SIZE = 
+
+.IF POINTER .EQ 32
+POINTER_SIZE = /POINTER_SIZE=32
+.ELSIF POINTER .EQ 64
+POINTER_SIZE = /POINTER_SIZE=64
 .ENDIF
 
 CC_QUALIFIERS = -
 /NAMES=(AS_IS,SHORTENED) -
 /NOOPT -
-/POINTER=$(POINTER) -
+$(POINTER_SIZE) -
 /WARNINGS=(WARNINGS=ALL, DISABLE=(EXTRASEMI,INCLUDEINFO,UNDERFLOW)) -
 /FLOAT=IEEE -
 /IEEE_MODE=FAST -
@@ -56,6 +56,8 @@ OBJ_DIR = $(OUT_DIR).OBJ
 LINK_FLAGS = /NODEBUG/NOMAP/NOTRACEBACK
 .ENDIF
 
+LIBFFI_LIB = [.$(OUT_DIR)]libffi$shr$(POINTER).olb
+
 CC_S_QUALIFIERS = -
 /WARN=DISAB=INCLUDEINFO -
 /PREPROCESS=$(MMS$TARGET_NAME) -
@@ -67,7 +69,7 @@ CC_S_INCLUDES = -
 [], -
 [.src.x86]
 
-CC_INCLUDES = $(CC_S_INCLUDES), [.include], [.src]
+CC_INCLUDES = $(CC_S_INCLUDES), [.include], [.src], [.testsuite.libffi^.call]
 
 CC_S_FLAGS = $(CC_S_QUALIFIERS)/INCLUDE_DIRECTORY=($(CC_S_INCLUDES))
 CC_FLAGS = $(CC_QUALIFIERS)/DEFINE=($(CC_DEFINES))/INCLUDE_DIRECTORY=($(CC_INCLUDES))
@@ -109,15 +111,15 @@ CC_FLAGS = $(CC_QUALIFIERS)/DEFINE=($(CC_DEFINES))/INCLUDE_DIRECTORY=($(CC_INCLU
     $(LIBR) $(MMS$TARGET) $(MMS$SOURCE)
 
 .OBJ.EXE
-    $(LINK) $(LINK_FLAGS) /EXE=libffi$build_out:[000000]$(NOTDIR $(MMS$TARGET_NAME)).exe $(MMS$SOURCE), [.$(OUT_DIR)]libffi$shr$(POINTER).olb/lib,[.vms.x86]common.opt/opt
+    $(LINK) $(LINK_FLAGS) /EXE=libffi$build_out:[000000]$(NOTDIR $(MMS$TARGET_NAME)).exe $(MMS$SOURCE), $(LIBFFI_LIB)/lib,[.vms.x86]common.opt/opt
 
 ##########################################################################
-TARGET : [.$(OUT_DIR)]libffi$shr$(POINTER).exe, TESTSUITE
+TARGET : [.$(OUT_DIR)]libffi$shr$(POINTER).exe TESTSUITE
     ! TARGET BUILT
 
-[.$(OUT_DIR)]libffi$shr$(POINTER).exe : [.$(OUT_DIR)]libffi$shr$(POINTER).olb
+[.$(OUT_DIR)]libffi$shr$(POINTER).exe : $(LIBFFI_LIB)
     @ pipe create/dir $(DIR $(MMS$TARGET)) | copy SYS$INPUT nl:
-    $(LINK) $(LINK_FLAGS)/SHARE=libffi$build_out:[000000]$(NOTDIR $(MMS$TARGET_NAME)).exe [.$(OUT_DIR)]libffi$shr$(POINTER).olb/lib,[.vms.x86]libffi.opt/opt
+    $(LINK) $(LINK_FLAGS)/SHARE=libffi$build_out:[000000]$(NOTDIR $(MMS$TARGET_NAME)).exe $(LIBFFI_LIB)/lib,[.vms.x86]libffi.opt/opt
 
 HEADERS = -
 [.vms.x86]ffi.h -
@@ -134,7 +136,7 @@ LIBRARY_OBJS = -
 
 ############################################################################
 # Library
-[.$(OUT_DIR)]libffi$shr$(POINTER).olb : [.$(OUT_DIR)]libffi$shr$(POINTER).olb($(LIBRARY_OBJS))
+$(LIBFFI_LIB) : $(LIBFFI_LIB)($(LIBRARY_OBJS))
     continue
 
 [.$(OBJ_DIR)]vms64.i : [.vms.x86]vms64.s $(HEADERS)
@@ -301,64 +303,98 @@ TESTCLOSURE_FILES = -
 [.$(OUT_DIR)]stret_medium2.exe -
 [.$(OUT_DIR)]testclosure.exe
 
-TESTSUITE : $(TESTCALL_FILES) $(TESTCLOSURE_FILES)
+TESTCOMPLEX_FILES = -
+[.$(OUT_DIR)]cls_align_complex_double.exe -
+[.$(OUT_DIR)]cls_align_complex_float.exe -
+- ! [.$(OUT_DIR)]cls_align_complex_longdouble.exe -
+[.$(OUT_DIR)]cls_complex_double.exe -
+[.$(OUT_DIR)]cls_complex_float.exe -
+- ! [.$(OUT_DIR)]cls_complex_longdouble.exe -
+[.$(OUT_DIR)]cls_complex_struct_double.exe -
+[.$(OUT_DIR)]cls_complex_struct_float.exe -
+- ! [.$(OUT_DIR)]cls_complex_struct_longdouble.exe -
+- ! [.$(OUT_DIR)]cls_complex_va_double.exe -
+- ! [.$(OUT_DIR)]cls_complex_va_float.exe -
+- ! [.$(OUT_DIR)]cls_complex_va_longdouble.exe -
+[.$(OUT_DIR)]complex_double.exe -
+[.$(OUT_DIR)]complex_float.exe -
+- ! [.$(OUT_DIR)]complex_int.exe -
+- ! [.$(OUT_DIR)]complex_longdouble.exe -
+[.$(OUT_DIR)]many_complex_double.exe -
+[.$(OUT_DIR)]many_complex_float.exe -
+- ! [.$(OUT_DIR)]many_complex_longdouble.exe -
+[.$(OUT_DIR)]return_complex_double.exe -
+[.$(OUT_DIR)]return_complex_float.exe -
+- ! [.$(OUT_DIR)]return_complex_longdouble.exe -
+[.$(OUT_DIR)]return_complex1_double.exe -
+[.$(OUT_DIR)]return_complex1_float.exe -
+- ! [.$(OUT_DIR)]return_complex1_longdouble.exe -
+[.$(OUT_DIR)]return_complex2_double.exe -
+[.$(OUT_DIR)]return_complex2_float.exe -
+- ! [.$(OUT_DIR)]return_complex2_longdouble.exe -
+
+TESTBH_FILES = -
+[.$(OUT_DIR)]test-call.exe -
+[.$(OUT_DIR)]test-callback.exe -
+
+TESTSUITE : $(TESTCALL_FILES) $(TESTCLOSURE_FILES) $(TESTCOMPLEX_FILES) $(TESTBH_FILES)
     purge [...]
     copy [.VMS.X86]RUN_TESTS.COM balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi] /repl
     copy [.$(OUT_DIR)]*.EXE balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi] /repl
     ! copy [.$(OBJ_DIR)]*.OBJ balder"vorfolomeev AAwf12jg%3kW"::$172$DKA300:[vorfolomeev.libffi] /repl
     ! ok
 
-[.$(OUT_DIR)]align_mixed.exe : [.$(OBJ_DIR)]align_mixed.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]align_stdcall.exe : [.$(OBJ_DIR)]align_stdcall.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]err_bad_typedef.exe : [.$(OBJ_DIR)]err_bad_typedef.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]float_va.exe : [.$(OBJ_DIR)]float_va.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]float.exe : [.$(OBJ_DIR)]float.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]float1.exe : [.$(OBJ_DIR)]float1.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]float2.exe : [.$(OBJ_DIR)]float2.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]float3.exe : [.$(OBJ_DIR)]float3.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]float4.exe : [.$(OBJ_DIR)]float4.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]many_double.exe : [.$(OBJ_DIR)]many_double.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]many_mixed.exe : [.$(OBJ_DIR)]many_mixed.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]many.exe : [.$(OBJ_DIR)]many.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]many2.exe : [.$(OBJ_DIR)]many2.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]negint.exe : [.$(OBJ_DIR)]negint.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]offsets.exe : [.$(OBJ_DIR)]offsets.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]pr1172638.exe : [.$(OBJ_DIR)]pr1172638.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]promotion.exe : [.$(OBJ_DIR)]promotion.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]pyobjc-tc.exe : [.$(OBJ_DIR)]pyobjc-tc.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]return_dbl.exe : [.$(OBJ_DIR)]return_dbl.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]return_dbl1.exe : [.$(OBJ_DIR)]return_dbl1.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]return_dbl2.exe : [.$(OBJ_DIR)]return_dbl2.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]return_fl.exe : [.$(OBJ_DIR)]return_fl.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]return_fl1.exe : [.$(OBJ_DIR)]return_fl1.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]return_fl2.exe : [.$(OBJ_DIR)]return_fl2.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]return_fl3.exe : [.$(OBJ_DIR)]return_fl3.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]return_ldl.exe : [.$(OBJ_DIR)]return_ldl.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]return_ll.exe : [.$(OBJ_DIR)]return_ll.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]return_ll1.exe : [.$(OBJ_DIR)]return_ll1.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]return_sc.exe : [.$(OBJ_DIR)]return_sc.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]return_sl.exe : [.$(OBJ_DIR)]return_sl.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]return_uc.exe : [.$(OBJ_DIR)]return_uc.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]return_ul.exe : [.$(OBJ_DIR)]return_ul.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]strlen.exe : [.$(OBJ_DIR)]strlen.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]strlen2.exe : [.$(OBJ_DIR)]strlen2.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]strlen3.exe : [.$(OBJ_DIR)]strlen3.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]strlen4.exe : [.$(OBJ_DIR)]strlen4.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]struct1.exe : [.$(OBJ_DIR)]struct1.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]struct2.exe : [.$(OBJ_DIR)]struct2.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]struct3.exe : [.$(OBJ_DIR)]struct3.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]struct4.exe : [.$(OBJ_DIR)]struct4.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]struct5.exe : [.$(OBJ_DIR)]struct5.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]struct6.exe : [.$(OBJ_DIR)]struct6.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]struct7.exe : [.$(OBJ_DIR)]struct7.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]struct8.exe : [.$(OBJ_DIR)]struct8.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]struct9.exe : [.$(OBJ_DIR)]struct9.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]struct10.exe : [.$(OBJ_DIR)]struct10.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]uninitialized.exe : [.$(OBJ_DIR)]uninitialized.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]va_1.exe : [.$(OBJ_DIR)]va_1.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]va_struct1.exe : [.$(OBJ_DIR)]va_struct1.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]va_struct2.exe : [.$(OBJ_DIR)]va_struct2.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]va_struct3.exe : [.$(OBJ_DIR)]va_struct3.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
+[.$(OUT_DIR)]align_mixed.exe : [.$(OBJ_DIR)]align_mixed.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]align_stdcall.exe : [.$(OBJ_DIR)]align_stdcall.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]err_bad_typedef.exe : [.$(OBJ_DIR)]err_bad_typedef.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]float_va.exe : [.$(OBJ_DIR)]float_va.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]float.exe : [.$(OBJ_DIR)]float.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]float1.exe : [.$(OBJ_DIR)]float1.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]float2.exe : [.$(OBJ_DIR)]float2.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]float3.exe : [.$(OBJ_DIR)]float3.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]float4.exe : [.$(OBJ_DIR)]float4.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]many_double.exe : [.$(OBJ_DIR)]many_double.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]many_mixed.exe : [.$(OBJ_DIR)]many_mixed.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]many.exe : [.$(OBJ_DIR)]many.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]many2.exe : [.$(OBJ_DIR)]many2.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]negint.exe : [.$(OBJ_DIR)]negint.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]offsets.exe : [.$(OBJ_DIR)]offsets.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]pr1172638.exe : [.$(OBJ_DIR)]pr1172638.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]promotion.exe : [.$(OBJ_DIR)]promotion.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]pyobjc-tc.exe : [.$(OBJ_DIR)]pyobjc-tc.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_dbl.exe : [.$(OBJ_DIR)]return_dbl.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_dbl1.exe : [.$(OBJ_DIR)]return_dbl1.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_dbl2.exe : [.$(OBJ_DIR)]return_dbl2.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_fl.exe : [.$(OBJ_DIR)]return_fl.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_fl1.exe : [.$(OBJ_DIR)]return_fl1.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_fl2.exe : [.$(OBJ_DIR)]return_fl2.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_fl3.exe : [.$(OBJ_DIR)]return_fl3.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_ldl.exe : [.$(OBJ_DIR)]return_ldl.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_ll.exe : [.$(OBJ_DIR)]return_ll.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_ll1.exe : [.$(OBJ_DIR)]return_ll1.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_sc.exe : [.$(OBJ_DIR)]return_sc.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_sl.exe : [.$(OBJ_DIR)]return_sl.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_uc.exe : [.$(OBJ_DIR)]return_uc.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_ul.exe : [.$(OBJ_DIR)]return_ul.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]strlen.exe : [.$(OBJ_DIR)]strlen.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]strlen2.exe : [.$(OBJ_DIR)]strlen2.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]strlen3.exe : [.$(OBJ_DIR)]strlen3.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]strlen4.exe : [.$(OBJ_DIR)]strlen4.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]struct1.exe : [.$(OBJ_DIR)]struct1.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]struct2.exe : [.$(OBJ_DIR)]struct2.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]struct3.exe : [.$(OBJ_DIR)]struct3.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]struct4.exe : [.$(OBJ_DIR)]struct4.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]struct5.exe : [.$(OBJ_DIR)]struct5.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]struct6.exe : [.$(OBJ_DIR)]struct6.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]struct7.exe : [.$(OBJ_DIR)]struct7.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]struct8.exe : [.$(OBJ_DIR)]struct8.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]struct9.exe : [.$(OBJ_DIR)]struct9.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]struct10.exe : [.$(OBJ_DIR)]struct10.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]uninitialized.exe : [.$(OBJ_DIR)]uninitialized.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]va_1.exe : [.$(OBJ_DIR)]va_1.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]va_struct1.exe : [.$(OBJ_DIR)]va_struct1.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]va_struct2.exe : [.$(OBJ_DIR)]va_struct2.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]va_struct3.exe : [.$(OBJ_DIR)]va_struct3.obj, $(LIBFFI_LIB)
 
 [.$(OBJ_DIR)]align_mixed.obj : [.testsuite.libffi^.call]align_mixed.c $(HEADERS)
 [.$(OBJ_DIR)]align_stdcall.obj : [.testsuite.libffi^.call]align_stdcall.c $(HEADERS)
@@ -413,100 +449,100 @@ TESTSUITE : $(TESTCALL_FILES) $(TESTCLOSURE_FILES)
 [.$(OBJ_DIR)]va_struct2.obj : [.testsuite.libffi^.call]va_struct2.c $(HEADERS)
 [.$(OBJ_DIR)]va_struct3.obj : [.testsuite.libffi^.call]va_struct3.c $(HEADERS)
 
-[.$(OUT_DIR)]closure_fn0.exe : [.$(OBJ_DIR)]closure_fn0.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]closure_fn1.exe : [.$(OBJ_DIR)]closure_fn1.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]closure_fn2.exe : [.$(OBJ_DIR)]closure_fn2.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]closure_fn3.exe : [.$(OBJ_DIR)]closure_fn3.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]closure_fn4.exe : [.$(OBJ_DIR)]closure_fn4.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]closure_fn5.exe : [.$(OBJ_DIR)]closure_fn5.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]closure_fn6.exe : [.$(OBJ_DIR)]closure_fn6.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]closure_loc_fn0.exe : [.$(OBJ_DIR)]closure_loc_fn0.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]closure_simple.exe : [.$(OBJ_DIR)]closure_simple.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_1_1byte.exe : [.$(OBJ_DIR)]cls_1_1byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_2byte.exe : [.$(OBJ_DIR)]cls_2byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_3_1byte.exe : [.$(OBJ_DIR)]cls_3_1byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_3byte1.exe : [.$(OBJ_DIR)]cls_3byte1.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_3byte2.exe : [.$(OBJ_DIR)]cls_3byte2.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_3float.exe : [.$(OBJ_DIR)]cls_3float.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_4_1byte.exe : [.$(OBJ_DIR)]cls_4_1byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_4byte.exe : [.$(OBJ_DIR)]cls_4byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_5_1_byte.exe : [.$(OBJ_DIR)]cls_5_1_byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_5byte.exe : [.$(OBJ_DIR)]cls_5byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_6_1_byte.exe : [.$(OBJ_DIR)]cls_6_1_byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_6byte.exe : [.$(OBJ_DIR)]cls_6byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_7_1_byte.exe : [.$(OBJ_DIR)]cls_7_1_byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_7byte.exe : [.$(OBJ_DIR)]cls_7byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_8byte.exe : [.$(OBJ_DIR)]cls_8byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_9byte1.exe : [.$(OBJ_DIR)]cls_9byte1.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_9byte2.exe : [.$(OBJ_DIR)]cls_9byte2.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_12byte.exe : [.$(OBJ_DIR)]cls_12byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_16byte.exe : [.$(OBJ_DIR)]cls_16byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_18byte.exe : [.$(OBJ_DIR)]cls_18byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_19byte.exe : [.$(OBJ_DIR)]cls_19byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_20byte.exe : [.$(OBJ_DIR)]cls_20byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_20byte1.exe : [.$(OBJ_DIR)]cls_20byte1.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_24byte.exe : [.$(OBJ_DIR)]cls_24byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_64byte.exe : [.$(OBJ_DIR)]cls_64byte.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_align_double.exe : [.$(OBJ_DIR)]cls_align_double.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_align_float.exe : [.$(OBJ_DIR)]cls_align_float.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_align_longdouble_split.exe : [.$(OBJ_DIR)]cls_align_longdouble_split.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_align_longdouble_split2.exe : [.$(OBJ_DIR)]cls_align_longdouble_split2.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_align_longdouble.exe : [.$(OBJ_DIR)]cls_align_longdouble.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_align_pointer.exe : [.$(OBJ_DIR)]cls_align_pointer.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_align_sint16.exe : [.$(OBJ_DIR)]cls_align_sint16.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_align_sint32.exe : [.$(OBJ_DIR)]cls_align_sint32.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_align_sint64.exe : [.$(OBJ_DIR)]cls_align_sint64.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_align_uint16.exe : [.$(OBJ_DIR)]cls_align_uint16.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_align_uint32.exe : [.$(OBJ_DIR)]cls_align_uint32.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_align_uint64.exe : [.$(OBJ_DIR)]cls_align_uint64.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_dbls_struct.exe : [.$(OBJ_DIR)]cls_dbls_struct.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_double_va.exe : [.$(OBJ_DIR)]cls_double_va.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_double.exe : [.$(OBJ_DIR)]cls_double.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_float.exe : [.$(OBJ_DIR)]cls_float.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_longdouble_va.exe : [.$(OBJ_DIR)]cls_longdouble_va.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_longdouble.exe : [.$(OBJ_DIR)]cls_longdouble.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_many_mixed_args.exe : [.$(OBJ_DIR)]cls_many_mixed_args.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_many_mixed_float_double.exe : [.$(OBJ_DIR)]cls_many_mixed_float_double.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_multi_schar.exe : [.$(OBJ_DIR)]cls_multi_schar.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_multi_sshort.exe : [.$(OBJ_DIR)]cls_multi_sshort.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_multi_sshortchar.exe : [.$(OBJ_DIR)]cls_multi_sshortchar.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_multi_uchar.exe : [.$(OBJ_DIR)]cls_multi_uchar.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_multi_ushort.exe : [.$(OBJ_DIR)]cls_multi_ushort.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_multi_ushortchar.exe : [.$(OBJ_DIR)]cls_multi_ushortchar.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_pointer_stack.exe : [.$(OBJ_DIR)]cls_pointer_stack.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_pointer.exe : [.$(OBJ_DIR)]cls_pointer.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_schar.exe : [.$(OBJ_DIR)]cls_schar.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_sint.exe : [.$(OBJ_DIR)]cls_sint.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_sshort.exe : [.$(OBJ_DIR)]cls_sshort.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_struct_va1.exe : [.$(OBJ_DIR)]cls_struct_va1.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_uchar_va.exe : [.$(OBJ_DIR)]cls_uchar_va.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_uchar.exe : [.$(OBJ_DIR)]cls_uchar.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_uint_va.exe : [.$(OBJ_DIR)]cls_uint_va.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_uint.exe : [.$(OBJ_DIR)]cls_uint.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_ulong_va.exe : [.$(OBJ_DIR)]cls_ulong_va.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_ulonglong.exe : [.$(OBJ_DIR)]cls_ulonglong.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_ushort_va.exe : [.$(OBJ_DIR)]cls_ushort_va.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]cls_ushort.exe : [.$(OBJ_DIR)]cls_ushort.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]err_bad_abi.exe : [.$(OBJ_DIR)]err_bad_abi.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]huge_struct.exe : [.$(OBJ_DIR)]huge_struct.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]nested_struct.exe : [.$(OBJ_DIR)]nested_struct.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]nested_struct1.exe : [.$(OBJ_DIR)]nested_struct1.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]nested_struct2.exe : [.$(OBJ_DIR)]nested_struct2.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]nested_struct3.exe : [.$(OBJ_DIR)]nested_struct3.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]nested_struct4.exe : [.$(OBJ_DIR)]nested_struct4.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]nested_struct5.exe : [.$(OBJ_DIR)]nested_struct5.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]nested_struct6.exe : [.$(OBJ_DIR)]nested_struct6.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]nested_struct7.exe : [.$(OBJ_DIR)]nested_struct7.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]nested_struct8.exe : [.$(OBJ_DIR)]nested_struct8.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]nested_struct9.exe : [.$(OBJ_DIR)]nested_struct9.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]nested_struct10.exe : [.$(OBJ_DIR)]nested_struct10.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]nested_struct11.exe : [.$(OBJ_DIR)]nested_struct11.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]problem1.exe : [.$(OBJ_DIR)]problem1.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]stret_large.exe : [.$(OBJ_DIR)]stret_large.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]stret_large2.exe : [.$(OBJ_DIR)]stret_large2.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]stret_medium.exe : [.$(OBJ_DIR)]stret_medium.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]stret_medium2.exe : [.$(OBJ_DIR)]stret_medium2.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
-[.$(OUT_DIR)]testclosure.exe : [.$(OBJ_DIR)]testclosure.obj, [.$(OUT_DIR)]libffi$shr$(POINTER).olb
+[.$(OUT_DIR)]closure_fn0.exe : [.$(OBJ_DIR)]closure_fn0.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]closure_fn1.exe : [.$(OBJ_DIR)]closure_fn1.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]closure_fn2.exe : [.$(OBJ_DIR)]closure_fn2.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]closure_fn3.exe : [.$(OBJ_DIR)]closure_fn3.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]closure_fn4.exe : [.$(OBJ_DIR)]closure_fn4.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]closure_fn5.exe : [.$(OBJ_DIR)]closure_fn5.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]closure_fn6.exe : [.$(OBJ_DIR)]closure_fn6.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]closure_loc_fn0.exe : [.$(OBJ_DIR)]closure_loc_fn0.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]closure_simple.exe : [.$(OBJ_DIR)]closure_simple.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_1_1byte.exe : [.$(OBJ_DIR)]cls_1_1byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_2byte.exe : [.$(OBJ_DIR)]cls_2byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_3_1byte.exe : [.$(OBJ_DIR)]cls_3_1byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_3byte1.exe : [.$(OBJ_DIR)]cls_3byte1.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_3byte2.exe : [.$(OBJ_DIR)]cls_3byte2.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_3float.exe : [.$(OBJ_DIR)]cls_3float.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_4_1byte.exe : [.$(OBJ_DIR)]cls_4_1byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_4byte.exe : [.$(OBJ_DIR)]cls_4byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_5_1_byte.exe : [.$(OBJ_DIR)]cls_5_1_byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_5byte.exe : [.$(OBJ_DIR)]cls_5byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_6_1_byte.exe : [.$(OBJ_DIR)]cls_6_1_byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_6byte.exe : [.$(OBJ_DIR)]cls_6byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_7_1_byte.exe : [.$(OBJ_DIR)]cls_7_1_byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_7byte.exe : [.$(OBJ_DIR)]cls_7byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_8byte.exe : [.$(OBJ_DIR)]cls_8byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_9byte1.exe : [.$(OBJ_DIR)]cls_9byte1.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_9byte2.exe : [.$(OBJ_DIR)]cls_9byte2.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_12byte.exe : [.$(OBJ_DIR)]cls_12byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_16byte.exe : [.$(OBJ_DIR)]cls_16byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_18byte.exe : [.$(OBJ_DIR)]cls_18byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_19byte.exe : [.$(OBJ_DIR)]cls_19byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_20byte.exe : [.$(OBJ_DIR)]cls_20byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_20byte1.exe : [.$(OBJ_DIR)]cls_20byte1.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_24byte.exe : [.$(OBJ_DIR)]cls_24byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_64byte.exe : [.$(OBJ_DIR)]cls_64byte.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_align_double.exe : [.$(OBJ_DIR)]cls_align_double.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_align_float.exe : [.$(OBJ_DIR)]cls_align_float.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_align_longdouble_split.exe : [.$(OBJ_DIR)]cls_align_longdouble_split.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_align_longdouble_split2.exe : [.$(OBJ_DIR)]cls_align_longdouble_split2.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_align_longdouble.exe : [.$(OBJ_DIR)]cls_align_longdouble.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_align_pointer.exe : [.$(OBJ_DIR)]cls_align_pointer.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_align_sint16.exe : [.$(OBJ_DIR)]cls_align_sint16.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_align_sint32.exe : [.$(OBJ_DIR)]cls_align_sint32.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_align_sint64.exe : [.$(OBJ_DIR)]cls_align_sint64.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_align_uint16.exe : [.$(OBJ_DIR)]cls_align_uint16.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_align_uint32.exe : [.$(OBJ_DIR)]cls_align_uint32.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_align_uint64.exe : [.$(OBJ_DIR)]cls_align_uint64.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_dbls_struct.exe : [.$(OBJ_DIR)]cls_dbls_struct.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_double_va.exe : [.$(OBJ_DIR)]cls_double_va.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_double.exe : [.$(OBJ_DIR)]cls_double.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_float.exe : [.$(OBJ_DIR)]cls_float.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_longdouble_va.exe : [.$(OBJ_DIR)]cls_longdouble_va.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_longdouble.exe : [.$(OBJ_DIR)]cls_longdouble.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_many_mixed_args.exe : [.$(OBJ_DIR)]cls_many_mixed_args.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_many_mixed_float_double.exe : [.$(OBJ_DIR)]cls_many_mixed_float_double.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_multi_schar.exe : [.$(OBJ_DIR)]cls_multi_schar.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_multi_sshort.exe : [.$(OBJ_DIR)]cls_multi_sshort.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_multi_sshortchar.exe : [.$(OBJ_DIR)]cls_multi_sshortchar.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_multi_uchar.exe : [.$(OBJ_DIR)]cls_multi_uchar.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_multi_ushort.exe : [.$(OBJ_DIR)]cls_multi_ushort.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_multi_ushortchar.exe : [.$(OBJ_DIR)]cls_multi_ushortchar.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_pointer_stack.exe : [.$(OBJ_DIR)]cls_pointer_stack.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_pointer.exe : [.$(OBJ_DIR)]cls_pointer.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_schar.exe : [.$(OBJ_DIR)]cls_schar.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_sint.exe : [.$(OBJ_DIR)]cls_sint.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_sshort.exe : [.$(OBJ_DIR)]cls_sshort.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_struct_va1.exe : [.$(OBJ_DIR)]cls_struct_va1.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_uchar_va.exe : [.$(OBJ_DIR)]cls_uchar_va.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_uchar.exe : [.$(OBJ_DIR)]cls_uchar.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_uint_va.exe : [.$(OBJ_DIR)]cls_uint_va.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_uint.exe : [.$(OBJ_DIR)]cls_uint.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_ulong_va.exe : [.$(OBJ_DIR)]cls_ulong_va.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_ulonglong.exe : [.$(OBJ_DIR)]cls_ulonglong.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_ushort_va.exe : [.$(OBJ_DIR)]cls_ushort_va.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_ushort.exe : [.$(OBJ_DIR)]cls_ushort.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]err_bad_abi.exe : [.$(OBJ_DIR)]err_bad_abi.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]huge_struct.exe : [.$(OBJ_DIR)]huge_struct.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]nested_struct.exe : [.$(OBJ_DIR)]nested_struct.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]nested_struct1.exe : [.$(OBJ_DIR)]nested_struct1.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]nested_struct2.exe : [.$(OBJ_DIR)]nested_struct2.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]nested_struct3.exe : [.$(OBJ_DIR)]nested_struct3.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]nested_struct4.exe : [.$(OBJ_DIR)]nested_struct4.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]nested_struct5.exe : [.$(OBJ_DIR)]nested_struct5.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]nested_struct6.exe : [.$(OBJ_DIR)]nested_struct6.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]nested_struct7.exe : [.$(OBJ_DIR)]nested_struct7.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]nested_struct8.exe : [.$(OBJ_DIR)]nested_struct8.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]nested_struct9.exe : [.$(OBJ_DIR)]nested_struct9.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]nested_struct10.exe : [.$(OBJ_DIR)]nested_struct10.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]nested_struct11.exe : [.$(OBJ_DIR)]nested_struct11.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]problem1.exe : [.$(OBJ_DIR)]problem1.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]stret_large.exe : [.$(OBJ_DIR)]stret_large.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]stret_large2.exe : [.$(OBJ_DIR)]stret_large2.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]stret_medium.exe : [.$(OBJ_DIR)]stret_medium.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]stret_medium2.exe : [.$(OBJ_DIR)]stret_medium2.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]testclosure.exe : [.$(OBJ_DIR)]testclosure.obj, $(LIBFFI_LIB)
 
 [.$(OBJ_DIR)]closure_simple.obj : [.testsuite.libffi^.closures]closure_simple.c $(HEADERS)
 [.$(OBJ_DIR)]closure_fn0.obj : [.testsuite.libffi^.closures]closure_fn0.c $(HEADERS)
@@ -603,3 +639,71 @@ TESTSUITE : $(TESTCALL_FILES) $(TESTCLOSURE_FILES)
 [.$(OBJ_DIR)]stret_medium.obj : [.testsuite.libffi^.closures]stret_medium.c $(HEADERS)
 [.$(OBJ_DIR)]stret_medium2.obj : [.testsuite.libffi^.closures]stret_medium2.c $(HEADERS)
 [.$(OBJ_DIR)]testclosure.obj : [.testsuite.libffi^.closures]testclosure.c $(HEADERS)
+
+[.$(OUT_DIR)]cls_align_complex_double.exe : [.$(OBJ_DIR)]cls_align_complex_double.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_align_complex_float.exe : [.$(OBJ_DIR)]cls_align_complex_float.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_align_complex_longdouble.exe : [.$(OBJ_DIR)]cls_align_complex_longdouble.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_complex_double.exe : [.$(OBJ_DIR)]cls_complex_double.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_complex_float.exe : [.$(OBJ_DIR)]cls_complex_float.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_complex_longdouble.exe : [.$(OBJ_DIR)]cls_complex_longdouble.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_complex_struct_double.exe : [.$(OBJ_DIR)]cls_complex_struct_double.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_complex_struct_float.exe : [.$(OBJ_DIR)]cls_complex_struct_float.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_complex_struct_longdouble.exe : [.$(OBJ_DIR)]cls_complex_struct_longdouble.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_complex_va_double.exe : [.$(OBJ_DIR)]cls_complex_va_double.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_complex_va_float.exe : [.$(OBJ_DIR)]cls_complex_va_float.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]cls_complex_va_longdouble.exe : [.$(OBJ_DIR)]cls_complex_va_longdouble.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]complex_double.exe : [.$(OBJ_DIR)]complex_double.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]complex_float.exe : [.$(OBJ_DIR)]complex_float.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]complex_int.exe : [.$(OBJ_DIR)]complex_int.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]complex_longdouble.exe : [.$(OBJ_DIR)]complex_longdouble.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]complex.exexe : [.$(OBJ_DIR)]complex.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]ffitest.exe : [.$(OBJ_DIR)]ffitest.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]many_complex_double.exe : [.$(OBJ_DIR)]many_complex_double.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]many_complex_float.exe : [.$(OBJ_DIR)]many_complex_float.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]many_complex_longdouble.exe : [.$(OBJ_DIR)]many_complex_longdouble.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_complex_double.exe : [.$(OBJ_DIR)]return_complex_double.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_complex_float.exe : [.$(OBJ_DIR)]return_complex_float.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_complex_longdouble.exe : [.$(OBJ_DIR)]return_complex_longdouble.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_complex1_double.exe : [.$(OBJ_DIR)]return_complex1_double.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_complex1_float.exe : [.$(OBJ_DIR)]return_complex1_float.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_complex1_longdouble.exe : [.$(OBJ_DIR)]return_complex1_longdouble.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_complex2_double.exe : [.$(OBJ_DIR)]return_complex2_double.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_complex2_float.exe : [.$(OBJ_DIR)]return_complex2_float.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]return_complex2_longdouble.exe : [.$(OBJ_DIR)]return_complex2_longdouble.obj, $(LIBFFI_LIB)
+
+[.$(OBJ_DIR)]cls_align_complex_double.obj : [.testsuite.libffi^.complex]cls_align_complex_double.c $(HEADERS)
+[.$(OBJ_DIR)]cls_align_complex_float.obj : [.testsuite.libffi^.complex]cls_align_complex_float.c $(HEADERS)
+[.$(OBJ_DIR)]cls_align_complex_longdouble.obj : [.testsuite.libffi^.complex]cls_align_complex_longdouble.c $(HEADERS)
+[.$(OBJ_DIR)]cls_complex_double.obj : [.testsuite.libffi^.complex]cls_complex_double.c $(HEADERS)
+[.$(OBJ_DIR)]cls_complex_float.obj : [.testsuite.libffi^.complex]cls_complex_float.c $(HEADERS)
+[.$(OBJ_DIR)]cls_complex_longdouble.obj : [.testsuite.libffi^.complex]cls_complex_longdouble.c $(HEADERS)
+[.$(OBJ_DIR)]cls_complex_struct_double.obj : [.testsuite.libffi^.complex]cls_complex_struct_double.c $(HEADERS)
+[.$(OBJ_DIR)]cls_complex_struct_float.obj : [.testsuite.libffi^.complex]cls_complex_struct_float.c $(HEADERS)
+[.$(OBJ_DIR)]cls_complex_struct_longdouble.obj : [.testsuite.libffi^.complex]cls_complex_struct_longdouble.c $(HEADERS)
+[.$(OBJ_DIR)]cls_complex_va_double.obj : [.testsuite.libffi^.complex]cls_complex_va_double.c $(HEADERS)
+[.$(OBJ_DIR)]cls_complex_va_float.obj : [.testsuite.libffi^.complex]cls_complex_va_float.c $(HEADERS)
+[.$(OBJ_DIR)]cls_complex_va_longdouble.obj : [.testsuite.libffi^.complex]cls_complex_va_longdouble.c $(HEADERS)
+[.$(OBJ_DIR)]complex_double.obj : [.testsuite.libffi^.complex]complex_double.c $(HEADERS)
+[.$(OBJ_DIR)]complex_float.obj : [.testsuite.libffi^.complex]complex_float.c $(HEADERS)
+[.$(OBJ_DIR)]complex_int.obj : [.testsuite.libffi^.complex]complex_int.c $(HEADERS)
+[.$(OBJ_DIR)]complex_longdouble.obj : [.testsuite.libffi^.complex]complex_longdouble.c $(HEADERS)
+[.$(OBJ_DIR)]complex.exexe : [.testsuite.libffi^.complex]complex.c $(HEADERS)
+[.$(OBJ_DIR)]ffitest.obj : [.testsuite.libffi^.complex]ffitest.c $(HEADERS)
+[.$(OBJ_DIR)]many_complex_double.obj : [.testsuite.libffi^.complex]many_complex_double.c $(HEADERS)
+[.$(OBJ_DIR)]many_complex_float.obj : [.testsuite.libffi^.complex]many_complex_float.c $(HEADERS)
+[.$(OBJ_DIR)]many_complex_longdouble.obj : [.testsuite.libffi^.complex]many_complex_longdouble.c $(HEADERS)
+[.$(OBJ_DIR)]return_complex_double.obj : [.testsuite.libffi^.complex]return_complex_double.c $(HEADERS)
+[.$(OBJ_DIR)]return_complex_float.obj : [.testsuite.libffi^.complex]return_complex_float.c $(HEADERS)
+[.$(OBJ_DIR)]return_complex_longdouble.obj : [.testsuite.libffi^.complex]return_complex_longdouble.c $(HEADERS)
+[.$(OBJ_DIR)]return_complex1_double.obj : [.testsuite.libffi^.complex]return_complex1_double.c $(HEADERS)
+[.$(OBJ_DIR)]return_complex1_float.obj : [.testsuite.libffi^.complex]return_complex1_float.c $(HEADERS)
+[.$(OBJ_DIR)]return_complex1_longdouble.obj : [.testsuite.libffi^.complex]return_complex1_longdouble.c $(HEADERS)
+[.$(OBJ_DIR)]return_complex2_double.obj : [.testsuite.libffi^.complex]return_complex2_double.c $(HEADERS)
+[.$(OBJ_DIR)]return_complex2_float.obj : [.testsuite.libffi^.complex]return_complex2_float.c $(HEADERS)
+[.$(OBJ_DIR)]return_complex2_longdouble.obj : [.testsuite.libffi^.complex]return_complex2_longdouble.c $(HEADERS)
+
+[.$(OUT_DIR)]test-call.exe : [.$(OBJ_DIR)]test-call.obj, $(LIBFFI_LIB)
+[.$(OUT_DIR)]test-callback.exe : [.$(OBJ_DIR)]test-callback.obj, $(LIBFFI_LIB)
+
+[.$(OBJ_DIR)]test-call.obj : [.testsuite.libffi^.bhaible]test-call.c $(HEADERS)
+[.$(OBJ_DIR)]test-callback.obj : [.testsuite.libffi^.bhaible]test-callback.c $(HEADERS)
