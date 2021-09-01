@@ -337,11 +337,11 @@ typedef struct {
   char tramp[FFI_TRAMPOLINE_SIZE];
 #endif
   ffi_cif   *cif;
-#if defined(__VMS) && (!defined(__INITIAL_POINTER_SIZE) || __INITIAL_POINTER_SIZE == 32)
+#if defined(__VMS) && (!defined(__INITIAL_POINTER_SIZE) || __INITIAL_POINTER_SIZE != 64)
   void  *_align_after_cif;
 #endif
   void     (*fun)(ffi_cif*,void*,void**,void*);
-#if defined(__VMS) && (!defined(__INITIAL_POINTER_SIZE) || __INITIAL_POINTER_SIZE == 32)
+#if defined(__VMS) && (!defined(__INITIAL_POINTER_SIZE) || __INITIAL_POINTER_SIZE != 64)
   void  *_align_after_fun;
 #endif
   void      *user_data;

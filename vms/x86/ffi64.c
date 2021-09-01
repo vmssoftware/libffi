@@ -693,7 +693,7 @@ ffi_status ffi_prep_closure_loc(ffi_closure *closure, ffi_cif *cif,
     dest = ffi_closure_vms64;
 
   memcpy(tramp, trampoline, sizeof(trampoline));
-#if defined(__VMS) && (!defined(__INITIAL_POINTER_SIZE) || __INITIAL_POINTER_SIZE == 32)
+#if defined(__VMS) && (!defined(__INITIAL_POINTER_SIZE) || __INITIAL_POINTER_SIZE != 64)
   *(UINT64 *)(tramp + sizeof(trampoline)) = (UINT32)(uintptr_t)dest;
 #else
   *(UINT64 *)(tramp + sizeof(trampoline)) = (uintptr_t)dest;
