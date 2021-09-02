@@ -6,6 +6,9 @@ X86HOST = BALDER
 X86DISK = $172$DKA300
 X86USER = vorfolomeev
 X86PASSWORD = AAwf12jg%3kW
+! set def $172$DKA300:
+! @usr_disk:[vorfolomeev.cpython.vms]python^.def_x86
+! python /$172$DKA300/vorfolomeev/cpython/lib/ctypes/test/ -v
 
 .IF POINTER .EQ 32
 POINTER_SIZE = /POINTER_SIZE=32
@@ -344,7 +347,7 @@ TESTBH_FILES = -
 
 TESTSUITE : $(TESTCALL_FILES) $(TESTCLOSURE_FILES) $(TESTCOMPLEX_FILES) $(TESTBH_FILES)
     purge [...]
-    copy [.VMS.X86]RUN_TESTS.COM $(X86HOST)"$(X86USER) $(X86PASSWORD)"::$(X86DISK):[$(X86USER).libffi] /repl
+    copy [.VMS.X86]RUN_*.COM $(X86HOST)"$(X86USER) $(X86PASSWORD)"::$(X86DISK):[$(X86USER).libffi] /repl
     copy [.$(OUT_DIR)]*.EXE $(X86HOST)"$(X86USER) $(X86PASSWORD)"::$(X86DISK):[$(X86USER).libffi] /repl
     ! copy [.$(OBJ_DIR)]*.OBJ $(X86HOST)"$(X86USER) $(X86PASSWORD)"::$(X86DISK):[$(X86USER).libffi] /repl
     ! ok
