@@ -1,5 +1,5 @@
 !
-USR_DISK:[vorfolomeev.syslib_x86]LIBRTL.EXE/SHARE
+WRK_DISK:[vorfolomeev.syslib_x86]LIBRTL.EXE/SHARE
 GSMATCH=LEQUAL,1,0
 CASE_SENSITIVE=YES
 !
