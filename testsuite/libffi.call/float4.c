@@ -39,7 +39,11 @@ int main (void)
   CHECK(ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 1,
 		     &ffi_type_double, args) == FFI_OK);
   
+  #ifdef __VMS
+  d = DBL_MIN; d /= 2;
+  #else
   d = DBL_MIN / 2;
+  #endif
   
   /* Put a canary in the return array.  This is a regression test for
      a buffer overrun.  */

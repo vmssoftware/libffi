@@ -2,10 +2,22 @@
 
 POINTER_SIZE = 
 
+.IF X86_64
+LINK_ADD=/SEGMENT=CODE=P0
+X86_64_START=pipe set command work:[vorfolomeev.decc_xvxv]XVXV_GEMC.CLD ; define decc$compiler work:[vorfolomeev.decc_xvxv]XVXV.DBG ; set image /flag=nocall_debug work:[vorfolomeev.decc_xvxv]XVXV.DBG ; define GEM_NOCHECK 1
+.ENDIF
+
+.IF X86_CROSS
+X86_START = pipe @SYS$MANAGER:X86_XTOOLS$SYLOGIN ; define sys$library X86$LIBRARY
+.ENDIF
+
+.IF X86_CROSS
 X86HOST = BALDER
 X86DISK = $172$DKA300
 X86USER = vorfolomeev
 X86PASSWORD = AAwf12jg%3kW
+.ENDIF
+
 ! set def $172$DKA300:
 ! @usr_disk:[vorfolomeev.cpython.vms]python^.def_x86
 ! python /$172$DKA300/vorfolomeev/cpython/lib/ctypes/test/ -v
@@ -54,14 +66,14 @@ CC_QUALIFIERS = $(CC_QUALIFIERS)/DEBUG/NOOPTIMIZE/LIST=$(MMS$TARGET_NAME)/SHOW=A
 CC_DEFINES = $(CC_DEFINES),_DEBUG
 OUT_DIR = $(OUTDIR).$(CONFIG)
 OBJ_DIR = $(OUT_DIR).OBJ
-LINK_FLAGS = /NODEBUG/MAP=[.$(OUT_DIR)]$(NOTDIR $(MMS$TARGET_NAME))/TRACE/DSF=[.$(OUT_DIR)]$(NOTDIR $(MMS$TARGET_NAME)).DSF
+LINK_FLAGS = $(LINK_ADD)/NODEBUG/MAP=[.$(OUT_DIR)]$(NOTDIR $(MMS$TARGET_NAME))/TRACE/DSF=[.$(OUT_DIR)]$(NOTDIR $(MMS$TARGET_NAME)).DSF
 .ELSE
 ! release
 CC_QUALIFIERS = $(CC_QUALIFIERS)/NODEBUG/OPTIMIZE/NOLIST
 CC_DEFINES = $(CC_DEFINES),_NDEBUG
 OUT_DIR = $(OUTDIR).$(CONFIG)
 OBJ_DIR = $(OUT_DIR).OBJ
-LINK_FLAGS = /NODEBUG/NOMAP/NOTRACEBACK
+LINK_FLAGS = $(LINK_ADD)/NODEBUG/NOMAP/NOTRACEBACK
 .ENDIF
 
 LIBFFI_LIB = [.$(OUT_DIR)]libffi$shr$(POINTER).olb
@@ -83,9 +95,8 @@ CC_S_FLAGS = $(CC_S_QUALIFIERS)/INCLUDE_DIRECTORY=($(CC_S_INCLUDES))
 CC_FLAGS = $(CC_QUALIFIERS)/DEFINE=($(CC_DEFINES))/INCLUDE_DIRECTORY=($(CC_INCLUDES))
 
 .FIRST
-    ! x86 setup
-    @SYS$MANAGER:X86_XTOOLS$SYLOGIN
-    define sys$library X86$LIBRARY
+    $(X86_64_START)
+    $(X86_START)
     ! defines for nested includes, like:
     ! #include "clinic/transmogrify.h.h"
     ! names
@@ -119,15 +130,23 @@ CC_FLAGS = $(CC_QUALIFIERS)/DEFINE=($(CC_DEFINES))/INCLUDE_DIRECTORY=($(CC_INCLU
     $(LIBR) $(MMS$TARGET) $(MMS$SOURCE)
 
 .OBJ.EXE
+.IF X86_64
+    $(LINK) $(LINK_FLAGS) /EXE=libffi$build_out:[000000]$(NOTDIR $(MMS$TARGET_NAME)).exe $(MMS$SOURCE), $(LIBFFI_LIB)/lib,[.vms.x86]common_native.opt/opt
+.ELSE
     $(LINK) $(LINK_FLAGS) /EXE=libffi$build_out:[000000]$(NOTDIR $(MMS$TARGET_NAME)).exe $(MMS$SOURCE), $(LIBFFI_LIB)/lib,[.vms.x86]common.opt/opt
+.ENDIF
 
 ##########################################################################
-TARGET : [.$(OUT_DIR)]libffi$shr$(POINTER).exe TESTSUITE
+TARGET : [.$(OUT_DIR)]libffi$shr$(POINTER).exe
     ! TARGET BUILT
 
 [.$(OUT_DIR)]libffi$shr$(POINTER).exe : $(LIBFFI_LIB)
     @ pipe create/dir $(DIR $(MMS$TARGET)) | copy SYS$INPUT nl:
+.IF X86_64
+    $(LINK) $(LINK_FLAGS)/SHARE=libffi$build_out:[000000]$(NOTDIR $(MMS$TARGET_NAME)).exe $(LIBFFI_LIB)/lib,[.vms.x86]libffi_native.opt/opt
+.ELSE
     $(LINK) $(LINK_FLAGS)/SHARE=libffi$build_out:[000000]$(NOTDIR $(MMS$TARGET_NAME)).exe $(LIBFFI_LIB)/lib,[.vms.x86]libffi.opt/opt
+.ENDIF
 
 HEADERS = -
 [.vms.x86]ffi.h -
