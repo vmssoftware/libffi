@@ -1,10 +1,12 @@
 ! MMS/EXT/DESCR=libffi_x86.mms/MACRO=("OUTDIR=OUT","CONFIG=DEBUG","POINTER=32")
+! x86
+! MMS/EXT/DESCR=libffi_x86.mms/MACRO=("OUTDIR=OUT","CONFIG=DEBUG","POINTER=32","X86_64=1")
 
 POINTER_SIZE = 
 
 .IF X86_64
 LINK_ADD=/SEGMENT=CODE=P0
-X86_64_START=pipe set command work:[vorfolomeev.decc_xvxv]XVXV_GEMC.CLD ; define decc$compiler work:[vorfolomeev.decc_xvxv]XVXV.DBG ; set image /flag=nocall_debug work:[vorfolomeev.decc_xvxv]XVXV.DBG ; define GEM_NOCHECK 1
+X86_64_START=@sys$login:setup_compilers
 .ENDIF
 
 .IF X86_CROSS
@@ -79,10 +81,14 @@ LINK_FLAGS = $(LINK_ADD)/NODEBUG/NOMAP/NOTRACEBACK
 LIBFFI_LIB = [.$(OUT_DIR)]libffi$shr$(POINTER).olb
 
 CC_S_QUALIFIERS = -
-/WARN=DISAB=INCLUDEINFO -
 /PREPROCESS=$(MMS$TARGET_NAME) -
 /NOLIST -
 /NOLINE
+
+.IF X86_64
+CC_S_QUALIFIERS = $(CC_S_QUALIFIERS)-
+/WARN=DISAB=INCLUDEINFO
+.ENDIF
 
 CC_S_INCLUDES = -
 [.vms.x86], -

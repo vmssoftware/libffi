@@ -38,3 +38,4 @@ src/arm/trampoline.S
 **/texinfo.tex
 .vscode
 out
+!vms/x86/fficonfig.h
