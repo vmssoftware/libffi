@@ -169,7 +169,11 @@ LIBRARY_OBJS = -
 
 ############################################################################
 # Library
-$(LIBFFI_LIB) : $(LIBFFI_LIB)($(LIBRARY_OBJS))
+$(LIBFFI_LIB) : $(LIBFFI_LIB)(          \
+		$(FOREACH FILE, 			    \
+			$(LIBRARY_OBJS)			    \
+		, $(BASENAME $(FILE))=$(FILE))	\
+		)
     continue
 
 [.$(OBJ_DIR)]vms64.i : [.vms.x86]vms64.s $(HEADERS)
