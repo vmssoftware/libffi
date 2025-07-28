@@ -7,7 +7,7 @@ POINTER_SIZE =
 
 .IF X86_64
 LINK_ADD=/SEGMENT=CODE=P0
-X86_64_START=@sys$login:llvm.com
+X86_64_START=@llvm$:[llvm10]define_logicals.com
 .ENDIF
 
 .IF X86_CROSS
