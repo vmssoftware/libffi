@@ -591,7 +591,8 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
             memcpy(argp, avalue[i], size);
             argp += size;
         #ifdef __VMS
-            slots += size / FFI_SIZEOF_ARG;
+            /* do not miss the slots if size < FFI_SIZEOF_ARG */
+            slots += (size + FFI_SIZEOF_ARG - 1) / FFI_SIZEOF_ARG;
         #endif
         } else {
             /* The argument is passed entirely in registers.  */
