@@ -555,6 +555,12 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
 
     /* Allocate the space for the arguments, plus 4 words of temp space.  */
     stack = alloca(sizeof(struct register_args) + cif->bytes + 4 * 8);
+
+#ifdef __VMS
+    /* VELIX-2710 issue */
+    memset(stack, 0, sizeof(struct register_args) + cif->bytes + 4 * 8);
+#endif
+
     reg_args = (struct register_args *)stack;
     argp = stack + sizeof(struct register_args);
 
@@ -588,7 +594,11 @@ static void ffi_call_int(ffi_cif *cif, void (*fn)(void), void *rvalue,
 
             /* Pass this argument in memory.  */
             argp = (void *)FFI_ALIGN(argp, align);
-            memcpy(argp, avalue[i], size);
+            if (arg_types[i]->type == FFI_TYPE_POINTER && size == 4) {
+                (*(SINT64*)argp) = (SINT64)avalue[i];
+            } else {
+                memcpy(argp, avalue[i], size);
+            }
             argp += size;
         #ifdef __VMS
             /* do not miss the slots if size < FFI_SIZEOF_ARG */

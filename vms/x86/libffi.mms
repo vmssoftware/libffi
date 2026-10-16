@@ -7,7 +7,7 @@ POINTER_SIZE =
 
 .IF X86_64
 LINK_ADD=/SEGMENT=CODE=P0
-X86_64_START=@llvm$:[llvm10]define_logicals.com
+X86_64_START=@WORK7:[vorfolomeev]llvm.com
 .ENDIF
 
 .IF X86_CROSS
@@ -112,6 +112,7 @@ CC_FLAGS = $(CC_QUALIFIERS)/DEFINE=($(CC_DEFINES))/INCLUDE_DIRECTORY=($(CC_INCLU
     ! POINTER is "$(POINTER)"
     ! POINTER_SIZE is "$(POINTER_SIZE)"
     ! names
+    @WORK7:[vorfolomeev.cpython.vms]python_def.com
     BUILD_OUT_DIR = F$ENVIRONMENT("DEFAULT")-"]"+".$(OUT_DIR).]"
     BUILD_OBJ_DIR = F$ENVIRONMENT("DEFAULT")-"]"+".$(OBJ_DIR).]"
     define /trans=concealed libffi$build_out 'BUILD_OUT_DIR'
